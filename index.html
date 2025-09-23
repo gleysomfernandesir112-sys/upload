@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Streaming Layout - Login Xtream</title>
-    <!-- Meta tags para experiência de App Mobile -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- HLS.js para reprodução de M3U8 -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root {
@@ -411,12 +409,14 @@
                 const promoBannerHtml = `
                     <section class="promo-banner">
                         <div class="promo-content">
-                            <h2>Assine Nosso Plano Premium</h2>
-                            <p>Acesso ilimitado, suporte 24/7 e muito mais.</p>
+                            <h2>Assine o Plano Premium e tenha o Melhor Conteúdo!</h2>
+                            <p>Tenha acesso a uma experiência completa de entretenimento. Nosso aplicativo funciona em TV, celular e computador, com garantia de qualidade em todo o conteúdo. Se um canal estiver offline, nosso suporte 24/7 troca o servidor para você na hora!</p>
                             <ul class="promo-features">
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Suporte 24/7</li>
                                 <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>+300 mil conteúdos</li>
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>App IBOPLAYER Anual</li>
+                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Suporte 24/7</li>
+                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Qualidade Garantida</li>
+                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Multiplataforma (TV, Celular, PC)</li>
+                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Troca de Servidor via Suporte</li>
                             </ul>
                         </div>
                         <div class="promo-action">
@@ -486,8 +486,11 @@
                     streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
-                    streamUrl = item.url;
-                    seriesId = pageId === 'series' ? title : '';
+                    if (pageId === 'series') {
+                        seriesId = item.name; // Usar o nome da série como ID
+                    } else {
+                        streamUrl = item.url;
+                    }
                 }
 
                 return `
@@ -579,6 +582,60 @@
                 }
             }
 
+            async function renderM3USeriesDetailsPage(seriesName) {
+                const seriesData = appData.series.find(s => s.name === seriesName);
+                if (!seriesData) return;
+
+                document.getElementById('series-details-backdrop').style.backgroundImage = `url('${seriesData.cover || ''}')`;
+                document.getElementById('series-details-title').textContent = seriesData.name;
+                document.getElementById('series-details-plot').textContent = ''; // M3U não fornece plot
+
+                const seasonSelect = document.getElementById('season-select');
+                seasonSelect.innerHTML = '';
+                
+                const seasons = {};
+                seriesData.episodes.forEach(ep => {
+                    if (!seasons[ep.season]) {
+                        seasons[ep.season] = [];
+                    }
+                    seasons[ep.season].push(ep);
+                });
+
+                Object.keys(seasons).sort((a, b) => a - b).forEach(seasonNum => {
+                    const option = document.createElement('option');
+                    option.value = seasonNum;
+                    option.textContent = `Temporada ${seasonNum}`;
+                    seasonSelect.appendChild(option);
+                });
+
+                const renderEpisodes = (seasonNum) => {
+                    const episodeList = document.getElementById('episode-list');
+                    episodeList.innerHTML = '';
+                    if (!seasons[seasonNum]) return;
+                    
+                    seasons[seasonNum].sort((a,b) => a.episode - b.episode).forEach(ep => {
+                        const item = document.createElement('div');
+                        item.className = 'episode-item';
+                        item.dataset.streamUrl = ep.url;
+                        item.innerHTML = `
+                            <img src="${ep.logo || seriesData.cover}" onerror="this.onerror=null;this.style.display='none';">
+                            <div>
+                                <strong>Episódio ${ep.episode}</strong>
+                                <p>${ep.title}</p>
+                            </div>
+                        `;
+                        episodeList.appendChild(item);
+                    });
+                };
+
+                seasonSelect.onchange = () => renderEpisodes(seasonSelect.value);
+                if (Object.keys(seasons).length > 0) {
+                    renderEpisodes(Object.keys(seasons)[0]);
+                }
+                
+                showPage('series-details');
+            }
+
 
             function logout() {
                 localStorage.removeItem('streamflix_session');
@@ -663,7 +720,7 @@
                     videoSource.removeAttribute('src'); 
                     videoPlayer.load();
                 } else {
-                    videoSource.setAttribute('src', streamUrl);
+                    videoPlayer.src = streamUrl;
                     videoPlayer.load();
                 }
                 
@@ -676,7 +733,11 @@
                 if (!card) return;
                 
                 if (card.dataset.seriesId) {
-                    renderSeriesDetailsPage(card.dataset.seriesId);
+                    if (activeUser.type === 'xtream') {
+                        renderSeriesDetailsPage(card.dataset.seriesId);
+                    } else { // M3U
+                        renderM3USeriesDetailsPage(card.dataset.seriesId);
+                    }
                 } else if (card.dataset.streamUrl) {
                     openPlayer(card.dataset.streamUrl);
                 }
@@ -722,6 +783,7 @@
              function parseM3U(text) {
                 const lines = text.split('\n');
                 const result = { live: [], vod: [], series: [] };
+                const seriesMap = new Map();
                 let currentItem = {};
 
                 for (const line of lines) {
@@ -748,12 +810,31 @@
                             currentItem = {}; continue;
                         }
 
-                        const isSeries = /S\d+[ .]?E\d+/i.test(currentItem.raw_title) || /temporada/i.test(currentItem.raw_title);
+                        const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
                         const isLive = url.includes('.ts') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
                         
-                        if(isSeries) {
-                           currentItem.cover = currentItem.logo;
-                           result.series.push(currentItem);
+                        if(seriesMatch) {
+                           const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
+                           const seasonNum = seriesMatch[2] || seriesMatch[4];
+                           const episodeNum = seriesMatch[3] || seriesMatch[5];
+
+                           if (!seriesMap.has(seriesName)) {
+                               seriesMap.set(seriesName, {
+                                   name: seriesName,
+                                   series_id: seriesName, // Usamos o nome como ID
+                                   cover: currentItem.logo,
+                                   episodes: []
+                               });
+                           }
+                           
+                           seriesMap.get(seriesName).episodes.push({
+                               title: currentItem.raw_title,
+                               url: currentItem.url,
+                               season: parseInt(seasonNum, 10),
+                               episode: parseInt(episodeNum, 10),
+                               logo: currentItem.logo
+                           });
+
                         } else if (isLive) {
                             result.live.push(currentItem);
                         } else { 
@@ -764,6 +845,7 @@
                         currentItem = {};
                     }
                 }
+                result.series = Array.from(seriesMap.values());
                 return result;
             }
             
@@ -774,4 +856,3 @@
     </script>
 </body>
 </html>
-
