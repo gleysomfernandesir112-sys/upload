@@ -73,9 +73,23 @@
         .navbar-desktop .nav-links { list-style: none; display: flex; gap: 1.5rem; flex-grow: 1; align-items: center; }
         .nav-link a { color: var(--text-color); text-decoration: none; font-size: 1rem; transition: color 0.2s; cursor: pointer; }
         .nav-link a:hover, .nav-link a.active { color: #b3b3b3; font-weight: 700; }
-        .profile { position: relative; margin-left: auto; }
+        
+        .profile { 
+            position: relative; 
+            margin-left: auto; 
+            padding-bottom: 15px;
+        }
         .profile img { border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
-        .profile-menu { display: none; position: absolute; right: 0; top: 50px; background-color: #181818; border-radius: 5px; overflow: hidden; min-width: 150px; }
+        .profile-menu { 
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 45px;
+            background-color: #181818; 
+            border-radius: 5px; 
+            overflow: hidden; 
+            min-width: 150px; 
+        }
         .profile:hover .profile-menu { display: block; }
         .profile-menu button { background: none; border: none; color: white; padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; text-align: left; font-size: 1rem; }
         .profile-menu button:hover { background-color: #333; }
@@ -324,7 +338,6 @@
             let searchTimeout;
             let hls = null;
 
-            // --- LÓGICA DE SELEÇÃO DE DISPOSITIVO ---
             function saveDevicePreference(device) {
                 localStorage.setItem('device_preference', device);
             }
@@ -548,7 +561,7 @@
                 let streamUrl = '';
                 let seriesId = '';
                 
-                if (activeUser.type === 'xtream') {
+                if (activeUser && activeUser.type === 'xtream') {
                     streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
@@ -705,6 +718,7 @@
 
             function logout() {
                 localStorage.removeItem('streamflix_session');
+                localStorage.removeItem('device_preference'); // Limpa a preferência de dispositivo também
                 activeUser = null;
                 window.location.reload();
             }
@@ -713,6 +727,7 @@
                 const session = localStorage.getItem('streamflix_session');
                 if (session) {
                     const userData = JSON.parse(session);
+                    activeUser = userData;
                     if (userData.type === 'xtream') {
                         await loginWithXtream(userData.url, userData.user, userData.pass);
                     } else if (userData.type === 'm3u') {
