@@ -152,6 +152,30 @@
         .promo-button { display: inline-block; background-color: var(--primary-color); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 5px; font-weight: 700; transition: background-color 0.2s; }
         .promo-button:hover { background-color: #f40612; }
 
+        /* Estilos do Log de Debug */
+        #debug-log-container {
+            position: fixed;
+            bottom: 80px; /* Acima da navbar mobile */
+            left: 10px;
+            width: calc(100% - 20px);
+            max-width: 500px;
+            height: 150px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            border-radius: 8px;
+            overflow-y: scroll;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #fff;
+            z-index: 9999;
+            pointer-events: none; /* Para não atrapalhar cliques */
+        }
+        .log-msg { margin-bottom: 4px; word-break: break-all; }
+        .log-msg.error { color: #ff6b6b; }
+        .log-msg.success { color: #63e6be; }
+        .log-msg.info { color: #99e9f2; }
+
         @media (min-width: 768px) {
             body { padding-top: 0; }
             .mobile-header { display: none; }
@@ -166,10 +190,13 @@
             #page-search { padding-top: 6rem; }
             .promo-banner { flex-direction: row; text-align: left; }
             .promo-action { text-align: right; min-width: 200px; }
+            #debug-log-container { bottom: 10px; } /* Ajuste para Desktop */
         }
     </style>
 </head>
 <body>
+
+    <div id="debug-log-container"></div>
 
     <div id="login-container">
         <div class="login-box">
@@ -279,6 +306,7 @@
             const loginLoader = document.getElementById('login-loader');
             const searchInput = document.getElementById('search-input');
             const searchResultsContainer = document.getElementById('search-results');
+            const debugLogContainer = document.getElementById('debug-log-container');
             
             let lastPageId = 'home';
             let activeUser = null;
@@ -289,9 +317,22 @@
             let searchTimeout;
             let hls = null;
 
+            // NOVA FUNÇÃO DE LOG
+            function logToScreen(message, type = 'info') {
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                const msgEl = document.createElement('div');
+                msgEl.className = `log-msg ${type}`;
+                msgEl.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugLogContainer.appendChild(msgEl);
+                debugLogContainer.scrollTop = debugLogContainer.scrollHeight;
+            }
+
+            logToScreen('App iniciado. Aguardando login.');
+
             function showLoginError(message) {
                 loginError.textContent = message;
                 loginLoader.style.display = 'none';
+                logToScreen(`Erro de Login: ${message}`, 'error');
             }
 
             function showApp(loginType) {
@@ -300,6 +341,7 @@
                 updateNavigation();
                 const startPage = (loginType === 'm3u' && appData.vodStreams.length === 0 && appData.series.length === 0) ? 'iptv' : 'home';
                 showPage(startPage);
+                logToScreen(`App carregado com sucesso (tipo: ${loginType}).`, 'success');
             }
 
             function initializeLazyLoader() {
@@ -317,12 +359,19 @@
             }
             
             async function fetchAPI(url) {
+                logToScreen(`Buscando dados de: ${url}`, 'info');
                 try {
                     const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP! Status: ${response.status}`);
+                    }
+                    logToScreen(`Sucesso ao buscar: ${url}`, 'success');
                     return response;
                 } catch (error) {
-                    if (error instanceof TypeError) throw new Error(`Falha na rede ou erro de CORS. Para testar, use uma extensão de navegador que desbloqueie o CORS.`);
+                    logToScreen(`Falha de rede para ${url}. Erro: ${error.message}`, 'error');
+                    if (error.message.includes('Failed to fetch')) {
+                        logToScreen('Isso geralmente é um erro de CORS no WebView/Navegador.', 'error');
+                    }
                     throw error;
                 }
             }
@@ -339,6 +388,7 @@
                     return data;
                 } catch(e) {
                     console.error("Raw response that failed to parse:", textData);
+                    logToScreen('Resposta inválida do servidor (não é JSON).', 'error');
                     throw new Error('Resposta inválida do servidor (não é JSON).');
                 }
             }
@@ -704,7 +754,12 @@
             });
 
             function openPlayer(streamUrl) {
-                if (!streamUrl) return;
+                if (!streamUrl) {
+                    logToScreen('Tentativa de abrir player com URL vazia.', 'error');
+                    return;
+                }
+                
+                logToScreen(`Abrindo player para: ${streamUrl}`, 'info');
 
                 if (hls) {
                     hls.destroy();
@@ -714,19 +769,40 @@
                 const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
 
                 if (isHls && Hls.isSupported()) {
+                    logToScreen('Detectado HLS. Usando Hls.js.', 'info');
                     hls = new Hls();
                     hls.loadSource(streamUrl);
                     hls.attachMedia(videoPlayer);
                     videoSource.removeAttribute('src'); 
                     videoPlayer.load();
                 } else {
+                    logToScreen('Detectado vídeo direto (MP4/etc). Usando <video> src.', 'info');
                     videoPlayer.src = streamUrl;
                     videoPlayer.load();
                 }
                 
                 showPage('player');
-                videoPlayer.play();
+                videoPlayer.play().catch(e => {
+                    logToScreen(`Erro ao tentar dar play: ${e.message}`, 'error');
+                });
             }
+            
+            // LOGS PARA O PLAYER DE VÍDEO
+            videoPlayer.addEventListener('error', () => {
+                const error = videoPlayer.error;
+                let errorMessage = `Erro no player de vídeo (código ${error.code}): `;
+                switch(error.code) {
+                    case 1: errorMessage += "Busca abortada pelo usuário."; break;
+                    case 2: errorMessage += "Erro de rede ao baixar o vídeo."; break;
+                    case 3: errorMessage += "Erro ao decodificar o vídeo."; break;
+                    case 4: errorMessage += "Formato de vídeo não suportado ou URL inválida (MEDIA_ERR_SRC_NOT_SUPPORTED)."; break;
+                    default: errorMessage += "Ocorreu um erro desconhecido no player.";
+                }
+                logToScreen(errorMessage, 'error');
+            });
+            videoPlayer.addEventListener('stalled', () => {
+                logToScreen('Download do vídeo travou (stalled). Verificando conexão...', 'error');
+            });
             
             mainContent.addEventListener('click', (event) => {
                 const card = event.target.closest('.media-card, .episode-item');
@@ -748,11 +824,13 @@
                 showPage(isSeriesDetailsActive ? 'series-details' : lastPageId);
                 
                 videoPlayer.pause();
+                videoPlayer.removeAttribute('src');
+                videoSource.setAttribute('src', '');
+
                 if (hls) {
                     hls.destroy();
                     hls = null;
                 }
-                videoSource.setAttribute('src', '');
                 videoPlayer.load();
             });
 
