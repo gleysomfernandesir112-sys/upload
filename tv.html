@@ -6,16 +6,11 @@
     <title>Fast - IPTV</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#141414">
-    <link rel="manifest" href="/manifest.json">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
-
     <style>
         :root {
             --primary-color: #E50914;
@@ -28,137 +23,245 @@
             background-color: var(--background-color); 
             color: var(--text-color); 
             overflow-x: hidden;
-            padding-top: 60px;
+            padding-top: 60px; /* Espaço para header mobile */
         }
         
         #login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://image.tmdb.org/t/p/original/VlHt2blBkncfAqPnuTtraG2flp.jpg') no-repeat center center/cover; }
         .app-wrapper { display: none; }
         .app-container { width: 100%; min-height: 100vh; padding-bottom: 80px; }
         
-        .login-box { background-color: rgba(0,0,0,0.85); padding: 2rem; border-radius: 8px; max-width: 450px; width: 90%; }
+        .login-box { background-color: rgba(0,0,0,0.85); padding: 4rem; border-radius: 8px; max-width: 450px; width: 100%; }
         .login-box h1 { text-align: center; margin-bottom: 2rem; }
-        .login-form-button { width: 100%; padding: 1rem; border: 1px solid var(--primary-color); background: transparent; color: var(--text-color); border-radius: 5px; font-size: 1rem; font-weight: 700; cursor: pointer; }
-        .login-form { display: flex; flex-direction: column; gap: 1rem; }
+        .login-tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid #333; }
+        .login-tab { flex: 1; text-align: center; padding: 0.75rem; cursor: pointer; border-bottom: 3px solid transparent; }
+        .login-tab.active { border-bottom-color: var(--primary-color); }
+        .login-form { display: none; flex-direction: column; gap: 1rem; }
+        .login-form.active { display: flex; }
         .login-form input { background-color: #333; border: none; border-radius: 5px; color: white; padding: 1rem; font-size: 1rem; }
         .login-form button { background-color: var(--primary-color); color: white; border: none; border-radius: 5px; padding: 1rem; font-size: 1.2rem; font-weight: 700; cursor: pointer; margin-top: 1.5rem; }
         #login-error { color: #e87c03; margin-top: 1rem; text-align: center; min-height: 1.2em; }
 
-        .page { display: none; }
+        .page { display: none; animation: fadeIn 0.4s ease-in-out; }
         .page.active { display: block; }
         .player-page.active { display: flex; }
-        .generic-page { padding: 1rem 5%; }
 
-        .mobile-header { display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); z-index: 101; padding: 1rem 1rem 0.75rem; padding-top: env(safe-area-inset-top, 1rem); border-bottom: 1px solid #333; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mobile-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 101;
+            padding: 1rem 1rem 0.75rem;
+            padding-top: env(safe-area-inset-top, 1rem);
+            border-bottom: 1px solid #333;
+        }
         .mobile-header h1 { font-size: 1.2rem; font-weight: 500; }
 
-        .navbar-desktop { display: none; position: fixed; top: 0; width: 100%; padding: 1rem 3rem; background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); align-items: center; z-index: 100; }
+        .navbar-desktop { display: none; position: fixed; top: 0; width: 100%; padding: 1rem 3rem; background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); align-items: center; z-index: 100; transition: background-color 0.3s; }
         .navbar-desktop .logo { color: var(--primary-color); font-size: 1.8rem; font-weight: 700; margin-right: 2rem; }
-        .navbar-desktop .nav-links { list-style: none; display: flex; gap: 1.5rem; flex-grow: 1; }
-        .navbar-desktop .nav-link a { color: var(--text-color); text-decoration: none; font-size: 1rem; }
-        .navbar-desktop .profile a { display: flex; align-items: center; }
+        .navbar-desktop .nav-links { list-style: none; display: flex; gap: 1.5rem; flex-grow: 1; align-items: center; }
+        .nav-link a { color: var(--text-color); text-decoration: none; font-size: 1rem; transition: color 0.2s; cursor: pointer; }
+        .nav-link a:hover, .nav-link a.active { color: #b3b3b3; font-weight: 700; }
+        .profile { position: relative; margin-left: auto; }
+        .profile img { border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
+        .profile-menu { display: none; position: absolute; right: 0; top: 50px; background-color: #181818; border-radius: 5px; overflow: hidden; }
+        .profile:hover .profile-menu { display: block; }
+        .profile-menu button { background: none; border: none; color: white; padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; text-align: left; }
+        .profile-menu button:hover { background-color: #333; }
 
-        .navbar-mobile { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; z-index: 100; border-top: 1px solid #333; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { background: none; border: none; color: #8e8e8e; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem; cursor: pointer; flex-grow: 1; }
-        .nav-item img { width: 24px; height: 24px; filter: invert(58%); }
-        .nav-item.active { color: var(--text-color); }
-        .nav-item.active img { filter: none; }
+        .hero-section { height: 60vh; display: flex; flex-direction: column; justify-content: center; padding: 0 5%; position: relative; background-size: cover; background-position: center center; }
+        .hero-content { max-width: 500px; position: relative; z-index: 2; }
+        .hero-title { font-size: 2.5rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 5px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-right: 1rem; transition: background-color 0.2s; }
         
-        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .media-card { flex-basis: auto; aspect-ratio: 10 / 16; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.3s ease; position: relative; background-color: #222; }
+        .media-card { flex: 0 0 150px; aspect-ratio: 10 / 16; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.3s ease; background-color: #222; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; }
         .media-card img { width: 100%; height: 100%; object-fit: cover; }
         .media-card:hover { transform: scale(1.05); }
         .media-card-title { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); font-size: 0.8rem; padding: 5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-        .hero-section { height: 60vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 5% 5rem; position: relative; background-size: cover; background-position: center center; }
-        .hero-title { font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
 
-        .promo-banner { display: flex; flex-direction: column; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(40, 40, 40, 0.8), rgba(20, 20, 20, 0.9)); border: 1px solid #333; border-radius: 8px; margin: 2rem 5%; padding: 1.5rem; gap: 1rem; }
-        .promo-content h2 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 0.5rem; }
-        .promo-content p { color: #ccc; margin-bottom: 1rem; font-size: 0.9rem; }
-        .promo-features { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.8rem; color: #b3b3b3; }
-        .promo-features li { display: flex; align-items: center; gap: 0.5rem; }
-        .promo-features svg { width: 16px; height: 16px; fill: #2ecc71; }
-        .promo-action { text-align: center; }
-        .promo-price { font-size: 2rem; font-weight: 700; color: var(--text-color); margin-bottom: 0.5rem; }
-        .promo-price span { font-size: 1rem; font-weight: 400; color: #ccc; }
-        .promo-button { display: inline-block; background-color: var(--primary-color); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 5px; font-weight: 700; transition: background-color 0.2s; }
-        .promo-button:hover { background-color: #f40612; }
+        .generic-page { padding: 1rem 5%; }
+        .loader-container { display: none; text-align: center; padding: 2rem; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid var(--primary-color); width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .load-sentinel { height: 40px; width: 100%; }
+        
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .media-grid .media-card { flex-basis: auto; }
 
-        .player-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 200; align-items: center; justify-content: center; }
+        .player-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 200; display: none; align-items: center; justify-content: center; }
         .player-page video { max-width: 100%; max-height: 100%; outline: none; }
         .back-from-player { position: absolute; top: 2rem; left: 2rem; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
         .back-from-player svg { width: 25px; height: 25px; fill: white; }
 
-        #page-profile h2 { margin-bottom: 1.5rem; }
-        .logout-button { width: 100%; max-width: 400px; display: block; margin: 0 auto; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; padding: 1rem; font-size: 1.2rem; font-weight: 700; cursor: pointer; }
-        #page-profile .layout-switcher { margin-top: 2rem; border-top: 1px solid #444; padding-top: 1.5rem; }
-        #page-profile .layout-switcher h3 { margin-bottom: 1rem; }
-        #page-profile .layout-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
-        #page-profile .layout-buttons button { padding: 0.8rem 1.2rem; border: 1px solid #555; background: #333; color: white; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
-        #page-profile .layout-buttons button.active { background: var(--primary-color); border-color: var(--primary-color); font-weight: bold; }
-        
-        #page-qr-login { text-align: center; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 110; }
-        #qr-code-container { width: 200px; height: 200px; margin: 1.5rem auto; background: white; padding: 1rem; border-radius: 8px; }
-        #qr-code-container img { width: 100%; height: 100%; }
-        #tv-code-display { font-size: 2rem; font-weight: 700; letter-spacing: 0.3rem; background: #333; padding: 0.8rem; border-radius: 5px; display: inline-block; margin-top: 1rem; }
-        #back-to-login-btn { margin-top: 2rem; width: 100%; max-width: 300px; }
+        #series-details-backdrop { height: 60vh; background-size: cover; background-position: center top; position: relative; }
+        #series-details-backdrop::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, var(--background-color) 10%, transparent 50%); }
+        #series-details-info { padding: 2rem 5%; margin-top: -10vh; position: relative; z-index: 2; }
+        #series-details-info h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+        #series-details-plot { margin-bottom: 1.5rem; color: #ccc; }
+        .season-selector { margin-bottom: 2rem; }
+        .season-selector select { background: #333; color: white; padding: 0.5rem 1rem; border-radius: 5px; border: 1px solid #555; font-size: 1rem; }
+        .episode-list { display: flex; flex-direction: column; gap: 1rem; }
+        .episode-item { display: flex; align-items: center; gap: 1rem; background: #222; padding: 1rem; border-radius: 5px; cursor: pointer; }
+        .episode-item:hover { background: #333; }
+        .episode-item img { width: 150px; height: 84px; object-fit: cover; border-radius: 3px; }
 
-        .layout-desktop body, .layout-tv body { padding-top: 0; }
-        .layout-desktop .mobile-header, .layout-tv .mobile-header, .layout-desktop .navbar-mobile, .layout-tv .navbar-mobile { display: none; }
-        .layout-desktop .app-container, .layout-tv .app-container { padding-bottom: 0; }
-        .layout-desktop .navbar-desktop, .layout-tv .navbar-desktop { display: flex; }
-        .layout-desktop .media-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-        .layout-desktop .generic-page, .layout-tv .generic-page { padding-top: 6rem; }
-        .layout-desktop .promo-banner, .layout-tv .promo-banner { flex-direction: row; text-align: left; }
-        .layout-desktop .promo-action, .layout-tv .promo-action { text-align: right; min-width: 200px; }
+        .navbar-mobile { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; z-index: 100; border-top: 1px solid #333; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { background: none; border: none; color: #8e8e8e; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem; cursor: pointer; transition: color 0.2s; flex-grow: 1; }
+        .nav-item img { width: 24px; height: 24px; filter: invert(58%); }
+        .nav-item.active { color: var(--text-color); }
+        .nav-item.active img { filter: none; }
         
-        .layout-tv { font-size: 1.2rem; }
-        .layout-tv .media-grid { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding-bottom: 20px; scrollbar-width: none; }
-        .layout-tv .media-grid::-webkit-scrollbar { display: none; }
-        .layout-tv .media-card { flex: 0 0 320px; aspect-ratio: 16 / 9; }
-        .layout-tv *:focus { outline: 4px solid var(--primary-color); outline-offset: 4px; transform: scale(1.08); z-index: 10; }
+        /* Search */
+        #page-search { padding: 1rem 5%; }
+        .search-bar { display: flex; align-items: stretch; background-color: #333; border-radius: 5px; margin-bottom: 2rem; }
+        .search-bar input { background: none; border: none; color: white; font-size: 1.2rem; flex-grow: 1; outline: none; padding: 0.75rem 1rem; }
+        #search-results h2 { margin-top: 1.5rem; margin-bottom: 1rem; }
         
-        @media (min-width: 768px) {
-            body:not([class*="layout-"]) { padding-top: 0; }
-            body:not([class*="layout-"]) .mobile-header, body:not([class*="layout-"]) .navbar-mobile { display: none; }
-            body:not([class*="layout-"]) .app-container { padding-bottom: 0; }
-            body:not([class*="layout-"]) .navbar-desktop { display: flex; }
-            body:not([class*="layout-"]) .media-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-            body:not([class*="layout-"]) .generic-page { padding-top: 6rem; }
-            body:not([class*="layout-"]) .promo-banner { flex-direction: row; text-align: left; }
-            body:not([class*="layout-"]) .promo-action { text-align: right; min-width: 200px; }
+        /* Profile Page & Logout Button */
+        #page-profile h2 {
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
         }
-        
-        @media (min-width: 1280px) {
-            body:not([class*="layout-"]) { font-size: 1.2rem; }
-            body:not([class*="layout-"]) .media-grid { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding-bottom: 20px; scrollbar-width: none; }
-            body:not([class*="layout-"]) .media-grid::-webkit-scrollbar { display: none; }
-            body:not([class*="layout-"]) .media-card { flex: 0 0 320px; aspect-ratio: 16/9; }
+        .logout-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            max-width: 400px;
+            display: block;
+            margin: 2rem auto 0;
+        }
+        .logout-button:hover {
+            background-color: #f40612;
+        }
+
+        @media (min-width: 768px) {
+            body { padding-top: 0; }
+            .mobile-header { display: none; }
+            .app-container { padding-bottom: 0; }
+            .navbar-desktop { display: flex; }
+            .navbar-mobile { display: none; }
+            .hero-section, #series-details-backdrop { height: 80vh; }
+            .hero-title, #series-details-info h1 { font-size: 3.5rem; }
+            .media-card { flex-basis: 220px; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+            .generic-page { padding-top: 6rem; }
+            #page-search { padding-top: 6rem; }
+        }
+
+        /* =================================== */
+        /* ESTILOS PARA MODO TV (10-FOOT UI)   */
+        /* =================================== */
+
+        .tv-mode {
+            /* Fontes maiores em todo o app */
+            font-size: 18px;
+        }
+
+        /* Esconde a barra de rolagem visualmente */
+        .tv-mode body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Destaque de Foco Visível para Navegação */
+        .tv-mode *:focus {
+            outline: 4px solid #E50914 !important; /* Destaque forte */
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.7);
+            transition: transform 0.2s ease-in-out, outline 0.1s linear;
+            transform: scale(1.08);
+            z-index: 10;
+        }
+
+        /* Oculta o cursor do mouse quando o modo TV está ativo */
+        .tv-mode {
+            cursor: none;
+        }
+
+        /* Ajustes de Layout para TV */
+        .tv-mode .navbar-desktop,
+        .tv-mode .navbar-mobile {
+            /* Navbar pode precisar de mais espaço ou um layout diferente */
+            padding: 1.5rem 4rem;
+        }
+
+        .tv-mode .nav-link a, .tv-mode .nav-item {
+            font-size: 1.2rem; /* Fontes maiores na navegação */
+        }
+
+        /* Cards maiores e com mais espaçamento */
+        .tv-mode .media-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px; /* Mais espaço entre os cards */
+        }
+
+        .tv-mode .media-card {
+            border-radius: 12px;
+        }
+
+        /* Página de detalhes da série */
+        .tv-mode #series-details-info {
+            padding: 2rem 5%;
+        }
+        .tv-mode #series-details-info h1 {
+            font-size: 3rem;
+        }
+        .tv-mode .episode-item {
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        /* Player */
+        .tv-mode .back-from-player {
+            width: 60px;
+            height: 60px;
+            top: 3rem;
+            left: 3rem;
+        }
+        .tv-mode .back-from-player svg {
+            width: 35px;
+            height: 35px;
         }
     </style>
 </head>
 <body>
     <div id="login-container">
-        <div id="page-qr-login" class="page">
-            <h2>Login pela Câmera do Celular</h2>
-            <p>1. Aponte a câmera do seu celular para o QR Code.</p>
-            <p>2. Digite seus dados na página que abrir.</p>
-            <div id="qr-code-container"></div>
-            <p style="margin-top: 2rem;">Seu código de login único:</p>
-            <div id="tv-code-display"></div>
-            <button id="back-to-login-btn" class="login-form-button">Voltar ao Login Manual</button>
-        </div>
         <div class="login-box">
             <h1>Entrar</h1>
-            <button id="show-qr-btn" class="login-form-button">Entrar com QR Code (TV)</button>
-            <p style="text-align: center; margin: 1rem 0;">- OU -</p>
-            <h2 style="text-align: center; margin-bottom: 1.5rem; font-size: 1.2rem;">Entrar com API Xtream</h2>
+            <div class="login-tabs">
+                <div class="login-tab active" data-form="xtream">API Xtream Codes</div>
+                <div class="login-tab" data-form="m3u">Lista M3U</div>
+            </div>
             <form id="xtream-form" class="login-form active">
-                <input type="text" id="xtream-url" placeholder="URL do Servidor" required>
-                <input type="text" id="xtream-user" placeholder="Usuário" required>
-                <input type="password" id="xtream-pass" placeholder="Senha" required>
+                <input type="text" id="xtream-url" placeholder="URL do Servidor (ex: http://domain.com:port)" required>
+                <input type="text" id="xtream-user" placeholder="Utilizador" required>
+                <input type="password" id="xtream-pass" placeholder="Palavra-passe" required>
                 <button type="submit">Entrar</button>
             </form>
+            <form id="m3u-form" class="login-form">
+                <input type="url" id="m3u-url-input" placeholder="URL da lista M3U" required>
+                <button type="submit">Carregar Lista</button>
+            </form>
             <div id="login-error"></div>
+             <div class="loader-container" id="login-loader">
+                <div class="loader"></div>
+            </div>
         </div>
     </div>
 
@@ -168,334 +271,681 @@
         </header>
         <div class="app-container">
             <nav class="navbar-desktop">
-                <div class="logo">FAST IPTV</div>
+                <div class="logo">FAST</div>
                 <ul class="nav-links">
-                    <li class="nav-link"><a href="#" data-page="home">Início</a></li>
-                    <li class="nav-link"><a href="#" data-page="series">Séries</a></li>
-                    <li class="nav-link"><a href="#" data-page="movies">Filmes</a></li>
-                    <li class="nav-link"><a href="#" data-page="iptv">Ao Vivo</a></li>
+                    <li class="nav-link" data-page="home"><a tabindex="0">Início</a></li>
+                    <li class="nav-link" data-page="series"><a tabindex="0">Séries</a></li>
+                    <li class="nav-link" data-page="movies"><a tabindex="0">Filmes</a></li>
+                    <li class="nav-link" data-page="iptv"><a tabindex="0">Canais Ao Vivo</a></li>
+                    <li class="nav-link" data-page="search"><a tabindex="0">Pesquisar</a></li>
                 </ul>
                 <div class="profile"> 
-                    <a href="#" data-page="profile">
-                        <img src="https://i.pravatar.cc/40" alt="Perfil">
-                    </a>
+                    <img src="https://i.pravatar.cc/40" alt="Perfil" tabindex="0"> 
+                    <div class="profile-menu">
+                        <button id="logout-btn">Sair</button>
+                    </div>
                 </div>
             </nav>
 
             <main class="main-content">
-                <div id="page-home" class="page"></div>
+                <div id="page-home" class="page"><div id="home-content"></div></div>
                 <div id="page-series" class="page generic-page"><div id="series-content" class="media-grid"></div></div>
                 <div id="page-movies" class="page generic-page"><div id="movies-content" class="media-grid"></div></div>
                 <div id="page-iptv" class="page generic-page"><div id="iptv-content" class="media-grid"></div></div>
+                <div id="page-search" class="page generic-page">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Buscar em todo o conteúdo...">
+                    </div>
+                    <div id="search-results"></div>
+                </div>
+                <div id="page-series-details" class="page">
+                    <div id="series-details-backdrop"></div>
+                    <div id="series-details-info">
+                        <h1 id="series-details-title"></h1>
+                        <p id="series-details-plot"></p>
+                        <div class="season-selector">
+                            <select id="season-select"></select>
+                        </div>
+                        <div id="episode-list"></div>
+                    </div>
+                </div>
                 <div id="page-profile" class="page generic-page">
                     <h2>Perfil e Configurações</h2>
                     <button id="mobile-logout-btn" class="logout-button">Sair da Conta</button>
-                    <div class="layout-switcher">
-                        <h3>Forçar Modo de Exibição</h3>
-                        <div class="layout-buttons">
-                            <button data-layout="auto" class="active">Automático</button>
-                            <button data-layout="mobile">Celular</button>
-                            <button data-layout="desktop">Desktop</button>
-                            <button data-layout="tv">TV</button>
-                        </div>
-                    </div>
-                </div>
-                 <div id="page-series-details" class="page">
-                    </div>
-                 <div id="page-player" class="page player-page">
-                    <button class="back-from-player" tabindex="0">
-                        <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg>
-                    </button>
-                    <video controls autoplay></video>
                 </div>
             </main>
-            
+
+            <div id="page-player" class="page player-page">
+                <button class="back-from-player">
+                    <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg>
+                </button>
+                <video controls autoplay><source src="" type="video/mp4"></video>
+            </div>
+
             <nav class="navbar-mobile">
-                 <button class="nav-item" data-page="home"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/home.png" alt="Início"/> <span>Início</span> </button>
+                <button class="nav-item" data-page="home"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/home.png" alt="Início"/> <span>Início</span> </button>
                 <button class="nav-item" data-page="series"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/tv-show.png" alt="Séries"/> <span>Séries</span> </button>
                 <button class="nav-item" data-page="movies"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/movie-projector.png" alt="Filmes"/> <span>Filmes</span> </button>
                 <button class="nav-item" data-page="iptv"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/playlist.png" alt="IPTV"/> <span>Ao Vivo</span> </button>
+                <button class="nav-item" data-page="search"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/search.png" alt="Pesquisar"/> <span>Pesquisar</span> </button>
                 <button class="nav-item" data-page="profile"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/user-male-circle.png" alt="Perfil"/> <span>Perfil</span> </button>
             </nav>
         </div>
     </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
+    
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const firebaseConfig = {
-          apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
-          authDomain: "fasthub-9a206.firebaseapp.com",
-          databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
-          projectId: "fasthub-9a206",
-          storageBucket: "fasthub-9a206.appspot.com",
-          messagingSenderId: "685686875831",
-          appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginContainer = document.getElementById('login-container');
+            const appWrapper = document.querySelector('.app-wrapper');
+            const mainContent = document.querySelector('.main-content');
+            const pages = document.querySelectorAll('.page');
+            const desktopLinks = document.querySelectorAll('.navbar-desktop .nav-links .nav-link');
+            const mobileLinks = document.querySelectorAll('.navbar-mobile .nav-item');
+            const mobilePageTitle = document.getElementById('mobile-page-title');
+            const backFromPlayerBtn = document.querySelector('.back-from-player');
+            const videoPlayer = document.querySelector('#page-player video');
+            const videoSource = videoPlayer.querySelector('source');
+            const logoutBtn = document.getElementById('logout-btn');
+            const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+            const loginTabs = document.querySelectorAll('.login-tab');
+            const loginForms = document.querySelectorAll('.login-form');
+            const xtreamForm = document.getElementById('xtream-form');
+            const m3uForm = document.getElementById('m3u-form');
+            const loginError = document.getElementById('login-error');
+            const loginLoader = document.getElementById('login-loader');
+            const searchInput = document.getElementById('search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+            
+            let lastPageId = 'home';
+            let activeUser = null;
+            let appData = { vodStreams: [], series: [], liveStreams: [] };
+            let renderState = {};
+            const RENDER_BATCH_SIZE = 100;
+            let lazyLoadObserver;
+            let searchTimeout;
+            let hls = null;
+            
+            // =================================== //
+            // LÓGICA PARA MODO TV (NOVA)          //
+            // =================================== //
+            let isTvMode = false;
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        let loginListener = null;
-
-        const loginContainer = document.getElementById('login-container');
-        const appWrapper = document.querySelector('.app-wrapper');
-        const pages = document.querySelectorAll('.page');
-        const mobileLinks = document.querySelectorAll('.navbar-mobile .nav-item');
-        const desktopLinks = document.querySelectorAll('.navbar-desktop .nav-links .nav-link, .navbar-desktop .profile a');
-        const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
-        const xtreamForm = document.getElementById('xtream-form');
-        const loginError = document.getElementById('login-error');
-        const layoutButtons = document.querySelectorAll('.layout-buttons button');
-        const showQrBtn = document.getElementById('show-qr-btn');
-        const backToLoginBtn = document.getElementById('back-to-login-btn');
-        const qrContainer = document.getElementById('qr-code-container');
-        const tvCodeDisplay = document.getElementById('tv-code-display');
-        const qrLoginPage = document.getElementById('page-qr-login');
-        const loginBox = document.querySelector('.login-box');
-        const mobilePageTitle = document.getElementById('mobile-page-title');
-        const videoPlayer = document.querySelector('#page-player video');
-        const backFromPlayerBtn = document.querySelector('.back-from-player');
-        
-        let activeUser = null;
-        let lastPageId = 'home';
-        let appData = { vodStreams: [], series: [], liveStreams: [] };
-        let hls = null;
-
-        function applyLayoutMode(mode) {
-            document.body.className = '';
-            if (mode && mode !== 'auto') {
-                document.body.classList.add(`layout-${mode}`);
+            function enableTvMode() {
+                if (isTvMode) return;
+                isTvMode = true;
+                document.body.classList.add('tv-mode');
+                console.log("TV Mode Ativado!");
+                // Foca no primeiro item navegável
+                const firstFocusable = document.querySelector('.nav-item[data-page="home"], .nav-link[data-page="home"] a');
+                if (firstFocusable) {
+                    setTimeout(() => firstFocusable.focus(), 100);
+                }
             }
-            layoutButtons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.layout === mode);
-            });
-            localStorage.setItem('forcedLayout', mode || 'auto');
-        }
 
-        layoutButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                applyLayoutMode(button.dataset.layout);
-            });
-        });
-
-        showQrBtn.addEventListener('click', () => {
-            loginBox.style.display = 'none';
-            qrLoginPage.style.display = 'flex';
-            
-            const tvCode = Math.floor(100000 + Math.random() * 900000).toString();
-            tvCodeDisplay.textContent = tvCode;
-            
-            const loginPageUrl = `http://app.fasthub.cloud/login-mobile.html?code=${tvCode}`;
-            
-            const qr = qrcode(0, 'L');
-            qr.addData(loginPageUrl);
-            qr.make();
-            qrContainer.innerHTML = qr.createImgTag(10);
-            
-            listenForLogin(tvCode);
-        });
-
-        backToLoginBtn.addEventListener('click', () => {
-            loginBox.style.display = 'block';
-            qrLoginPage.style.display = 'none';
-            if (loginListener) {
-                loginListener.off();
-            }
-        });
-
-        function listenForLogin(code) {
-            const loginRef = database.ref('logins/' + code);
-            loginListener = loginRef;
-            
-            loginRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.url) {
-                    loginRef.off();
-                    loginRef.remove();
-                    loginWithXtream(data.url, data.user, data.pass);
+            // Ouve por teclas de navegação para ativar o modo TV
+            window.addEventListener('keydown', (e) => {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
+                    enableTvMode();
                 }
             });
-        }
 
-        xtreamForm.addEventListener('submit', (e) => { 
-            e.preventDefault(); 
-            loginWithXtream(
-                document.getElementById('xtream-url').value.trim(), 
-                document.getElementById('xtream-user').value.trim(), 
-                document.getElementById('xtream-pass').value.trim()
-            ); 
-        });
-        
-        async function fetchAPI(url) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response;
-        }
-
-        async function fetchXtreamData(url, user, pass, action) {
-            const targetUrl = `${url}/player_api.php?username=${user}&password=${pass}&action=${action}`;
-            const response = await fetchAPI(targetUrl);
-            const textData = await response.text();
-            try {
-                if (textData.trim() === '[]') return [];
-                return JSON.parse(textData);
-            } catch (e) {
-                throw new Error('Resposta inválida do servidor (não é JSON).');
-            }
-        }
-
-        async function loginWithXtream(url, user, pass) {
-            loginError.textContent = '';
-            try {
-                await fetchXtreamData(url, user, pass, 'get_user_info');
-                const [liveStreams, vodStreams, series] = await Promise.all([
-                    fetchXtreamData(url, user, pass, 'get_live_streams'),
-                    fetchXtreamData(url, user, pass, 'get_vod_streams'),
-                    fetchXtreamData(url, user, pass, 'get_series'),
-                ]);
-                initializeApp({ liveStreams, vodStreams, series }, { type: 'xtream', url, user, pass });
-            } catch (error) {
-                loginError.textContent = error.message;
-            }
-        }
-
-        function initializeApp(data, user) {
-            appData = data;
-            activeUser = user;
-            localStorage.setItem('streamflix_session', JSON.stringify(activeUser));
-            loginContainer.style.display = 'none';
-            appWrapper.style.display = 'block';
-            renderHomePage();
-            renderGridPage('movies', appData.vodStreams);
-            renderGridPage('series', appData.series);
-            renderGridPage('iptv', appData.liveStreams);
-            showPage('home');
-        }
-        
-        function renderHomePage() {
-            const pageHome = document.getElementById('page-home');
-            const firstItem = appData.vodStreams?.[0] || appData.series?.[0] || appData.liveStreams?.[0];
-            if (!firstItem) {
-                pageHome.innerHTML = '<div class="generic-page"><h2>Nenhum conteúdo disponível.</h2></div>';
-                return;
-            }
-            const title = firstItem.name;
-            const image = firstItem.stream_icon || firstItem.cover;
-
-            const promoBannerHtml = `
-                <section class="promo-banner">
-                    <div class="promo-content">
-                        <h2>Assine Nosso Plano Premium</h2>
-                        <p>Acesso ilimitado a mais de 300 mil conteúdos, suporte 24/7 e muito mais.</p>
-                        <ul class="promo-features">
-                            <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Suporte 24/7</li>
-                            <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>+300 mil conteúdos</li>
-                            <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>App para TV, Celular e PC</li>
-                        </ul>
-                    </div>
-                    <div class="promo-action">
-                        <div class="promo-price">R$ 25,00 <span>/mês</span></div>
-                        <a href="https://wa.me/5551992792797" target="_blank" class="promo-button">Fale Conosco</a>
-                    </div>
-                </section>
-            `;
-
-            pageHome.innerHTML = `
-                <header class="hero-section" style="background-image: linear-gradient(to top, #141414 10%, transparent 50%), url('${image}');">
-                    <div class="hero-content">
-                        <h1 class="hero-title">${title}</h1>
-                    </div>
-                </header>
-                ${promoBannerHtml}
-            `;
-        }
-        
-        function renderGridPage(pageId, items) {
-            const container = document.getElementById(`${pageId}-content`);
-            if (!container) return;
-            const cardsHtml = items.map(item => createCardHtml(item, pageId)).join('');
-            container.innerHTML = cardsHtml;
-        }
-
-        function createCardHtml(item, pageId) {
-            const streamId = item.stream_id || item.series_id;
-            const title = item.name;
-            const image = item.stream_icon || item.cover;
-            let streamUrl = '';
-            let seriesId = '';
-
-            if (activeUser.type === 'xtream') {
-                streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
-                seriesId = pageId === 'series' ? streamId : '';
-            }
-            return `<div class="media-card" data-stream-url="${streamUrl}" data-series-id="${seriesId}" tabindex="0"><img src="${image}" alt="${title}"><div class="media-card-title">${title}</div></div>`;
-        }
-
-        function showPage(pageId) {
-            if (pageId && pageId !== 'player') lastPageId = pageId;
-            pages.forEach(p => p.classList.remove('active'));
-            const newPage = document.getElementById(`page-${pageId}`);
-            if (newPage) newPage.classList.add('active');
-
-            const titleMap = { home: 'Início', series: 'Séries', movies: 'Filmes', iptv: 'Ao Vivo', profile: 'Perfil' };
-            mobilePageTitle.textContent = titleMap[pageId] || 'Início';
-
-            [...mobileLinks, ...desktopLinks].forEach(link => {
-                const linkElement = link.matches('a') ? link : link;
-                const linkPage = linkElement.dataset.page;
-                linkElement.classList.toggle('active', linkPage === pageId);
+            // Opcional, mas recomendado: usar a Gamepad API para uma detecção mais robusta
+            window.addEventListener("gamepadconnected", (event) => {
+                console.log("Controle conectado:", event.gamepad.id);
+                enableTvMode();
             });
-        }
+            
+            // Simula clique com a tecla "Enter"
+            document.body.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    document.activeElement.click();
+                }
+            });
+            // =================================== //
+            
+            function showLoginError(message) {
+                loginError.textContent = message;
+                loginLoader.style.display = 'none';
+            }
 
-        function openPlayer(streamUrl) {
-            if (!streamUrl) return;
-            if (hls) { hls.destroy(); hls = null; }
+            function showApp(loginType) {
+                loginContainer.style.display = 'none';
+                appWrapper.style.display = 'block';
+                updateNavigation();
+                const startPage = (loginType === 'm3u' && appData.vodStreams.length === 0 && appData.series.length === 0) ? 'iptv' : 'home';
+                showPage(startPage);
+            }
 
-            const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
-
-            if (isHls && Hls.isSupported()) {
-                hls = new Hls();
-                hls.loadSource(streamUrl);
-                hls.attachMedia(videoPlayer);
-            } else {
-                videoPlayer.src = streamUrl;
+            function initializeLazyLoader() {
+                if (lazyLoadObserver) lazyLoadObserver.disconnect();
+                const options = { root: null, rootMargin: '0px 0px 500px 0px', threshold: 0 };
+                lazyLoadObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const sentinel = entry.target;
+                            const { stateKey, pageId } = sentinel.dataset;
+                            loadMoreItems(document.getElementById(`${pageId}-content`), sentinel, stateKey, pageId, observer);
+                        }
+                    });
+                }, options);
             }
             
-            videoPlayer.load();
-            showPage('player');
-            videoPlayer.play();
-        }
+            async function fetchAPI(url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response;
+                } catch (error) {
+                    if (error instanceof TypeError) throw new Error(`Falha na rede ou erro de CORS.`);
+                    throw error;
+                }
+            }
 
-        backFromPlayerBtn.addEventListener('click', () => {
-            showPage(lastPageId);
-            videoPlayer.pause();
-            videoPlayer.src = '';
-            if (hls) { hls.destroy(); hls = null; }
-        });
-        
-        function logout() {
-            localStorage.removeItem('streamflix_session');
-            localStorage.removeItem('forcedLayout');
-            window.location.reload();
-        }
 
-        [...mobileLinks, ...desktopLinks].forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                showPage(link.dataset.page);
+            async function fetchXtreamData(url, user, pass, action) {
+                const targetUrl = `${url}/player_api.php?username=${user}&password=${pass}&action=${action}`;
+                const response = await fetchAPI(targetUrl);
+                const textData = await response.text();
+                try {
+                    if (textData.trim() === '[]') return [];
+                    const data = JSON.parse(textData);
+                    if (data.user_info && data.user_info.auth === 0) throw new Error('Credenciais inválidas.');
+                    return data;
+                } catch(e) {
+                    throw new Error('Resposta inválida do servidor (não é JSON).');
+                }
+            }
+
+            async function loginWithXtream(url, user, pass) {
+                loginLoader.style.display = 'block';
+                loginError.textContent = '';
+                try {
+                    await fetchXtreamData(url, user, pass, 'get_user_info');
+                    const [liveStreams, vodStreams, series] = await Promise.all([
+                        fetchXtreamData(url, user, pass, 'get_live_streams'),
+                        fetchXtreamData(url, user, pass, 'get_vod_streams'),
+                        fetchXtreamData(url, user, pass, 'get_series'),
+                    ]);
+                    appData = { liveStreams, vodStreams, series };
+                    activeUser = { type: 'xtream', url, user, pass };
+                    localStorage.setItem('streamflix_session', JSON.stringify(activeUser));
+                    renderAllPages();
+                    showApp('xtream');
+                } catch (error) {
+                    showLoginError(error.message || 'Falha ao carregar dados.');
+                } finally {
+                    loginLoader.style.display = 'none';
+                }
+            }
+
+            async function loginWithM3U(url) {
+                loginLoader.style.display = 'block';
+                loginError.textContent = '';
+                try {
+                    const response = await fetchAPI(url);
+                    const m3uText = await response.text();
+                    const content = parseM3U(m3uText);
+                    if (content.live.length === 0 && content.vod.length === 0 && content.series.length === 0) throw new Error('Nenhum conteúdo válido encontrado na lista M3U.');
+                    appData = { liveStreams: content.live, vodStreams: content.vod, series: content.series };
+                    activeUser = { type: 'm3u', url };
+                    localStorage.setItem('streamflix_session', JSON.stringify(activeUser));
+                    renderAllPages();
+                    showApp('m3u');
+                } catch (error) {
+                    showLoginError(error.message);
+                } finally {
+                    loginLoader.style.display = 'none';
+                }
+            }
+            
+            function renderAllPages() {
+                renderState = {};
+                initializeLazyLoader();
+                renderHomePage();
+                renderGridPage('movies', appData.vodStreams);
+                renderGridPage('series', appData.series);
+                renderGridPage('iptv', appData.liveStreams);
+            }
+
+            function renderHomePage() {
+                const homeContent = document.getElementById('home-content');
+                const firstItem = appData.vodStreams?.[0] || appData.series?.[0] || appData.liveStreams?.[0];
+                if (!firstItem) {
+                    homeContent.innerHTML = '<div class="generic-page"><h1>Bem-vindo!</h1><p>Navegue pelas seções para encontrar conteúdo.</p></div>';
+                    return;
+                }
+                const title = firstItem.name;
+                const image = firstItem.stream_icon || firstItem.cover;
+                homeContent.innerHTML = `
+                    <header class="hero-section" style="background-image: linear-gradient(to top, #141414 10%, transparent 50%), url('${image}');">
+                        <div class="hero-content">
+                            <h1 class="hero-title">${title}</h1>
+                        </div>
+                    </header>
+                `;
+            }
+
+            function renderGridPage(pageId, items) {
+                const container = document.getElementById(`${pageId}-content`);
+                container.innerHTML = '';
+                if (!items || items.length === 0) return;
+                
+                const sentinel = document.createElement('div');
+                sentinel.className = 'load-sentinel';
+                container.after(sentinel);
+                
+                const stateKey = `${pageId}-grid`;
+                renderState[stateKey] = { items: items, nextIndex: 0 };
+                
+                sentinel.dataset.stateKey = stateKey;
+                sentinel.dataset.pageId = pageId;
+
+                lazyLoadObserver.observe(sentinel);
+            }
+
+            function loadMoreItems(container, sentinel, stateKey, pageId, observer) {
+                const state = renderState[stateKey];
+                if (!state) return;
+                observer.unobserve(sentinel);
+
+                const itemsToRender = state.items.slice(state.nextIndex, state.nextIndex + RENDER_BATCH_SIZE);
+                let cardsHtml = '';
+                itemsToRender.forEach(item => {
+                    cardsHtml += createCardHtml(item, pageId);
+                });
+
+                container.insertAdjacentHTML('beforeend', cardsHtml);
+                state.nextIndex += itemsToRender.length;
+                
+                if (state.nextIndex < state.items.length) {
+                    observer.observe(sentinel);
+                } else {
+                    sentinel.remove();
+                }
+            }
+
+            function createCardHtml(item, pageId) {
+                const streamId = item.stream_id || item.series_id;
+                const title = item.name;
+                const image = item.stream_icon || item.cover || item.logo;
+                let streamUrl = '';
+                let seriesId = '';
+                
+                if (activeUser.type === 'xtream') {
+                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
+                    seriesId = pageId === 'series' ? streamId : '';
+                } else { // M3U
+                    if (pageId === 'series') {
+                        seriesId = item.name;
+                    } else {
+                        streamUrl = item.url;
+                    }
+                }
+
+                // MODIFICADO: Adicionado tabindex="0" para permitir foco
+                return `
+                    <div class="media-card" tabindex="0" data-stream-url="${streamUrl}" data-series-id="${seriesId}">
+                        <img src="${image}" alt="${title}" onerror="this.onerror=null;this.src='https://placehold.co/400x600/222/fff?text=${encodeURIComponent(title)}';">
+                        <div class="media-card-title">${title}</div>
+                    </div>`;
+            }
+
+            function performSearch(query) {
+                if (!query) {
+                    searchResultsContainer.innerHTML = '';
+                    return;
+                }
+                const lowerQuery = query.toLowerCase();
+                const results = {
+                    Filmes: appData.vodStreams.filter(i => i.name.toLowerCase().includes(lowerQuery)),
+                    Séries: appData.series.filter(i => i.name.toLowerCase().includes(lowerQuery)),
+                    "Canais Ao Vivo": appData.liveStreams.filter(i => i.name.toLowerCase().includes(lowerQuery)),
+                };
+                
+                searchResultsContainer.innerHTML = '';
+                for (const [category, items] of Object.entries(results)) {
+                    if (items.length > 0) {
+                        let cardsHtml = items.map(item => {
+                            const pageId = category === 'Filmes' ? 'movies' : (category === 'Séries' ? 'series' : 'iptv');
+                            return createCardHtml(item, pageId);
+                        }).join('');
+                        searchResultsContainer.innerHTML += `<h2>${category} (${items.length})</h2><div class="media-grid">${cardsHtml}</div>`;
+                    }
+                }
+                if (searchResultsContainer.innerHTML === '') {
+                    searchResultsContainer.innerHTML = `<p>Nenhum resultado encontrado para "${query}"</p>`;
+                }
+            }
+            
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(searchInput.value);
+                }, 300);
             });
-        });
 
-        mobileLogoutBtn.addEventListener('click', logout);
-        
-        const savedLayoutOnLoad = localStorage.getItem('forcedLayout') || 'auto';
-        applyLayoutMode(savedLayoutOnLoad);
-        
-        // checkSession();
-    });
+
+            async function renderSeriesDetailsPage(seriesId) {
+                try {
+                    const seriesInfo = await fetchXtreamData(activeUser.url, activeUser.user, activeUser.pass, `get_series_info&series_id=${seriesId}`);
+                    
+                    document.getElementById('series-details-backdrop').style.backgroundImage = `url('${seriesInfo.info.backdrop_path?.[0] || ''}')`;
+                    document.getElementById('series-details-title').textContent = seriesInfo.info.name;
+                    document.getElementById('series-details-plot').textContent = seriesInfo.info.plot;
+                    
+                    const seasonSelect = document.getElementById('season-select');
+                    seasonSelect.innerHTML = '';
+                    if (seriesInfo.episodes) {
+                        Object.keys(seriesInfo.episodes).forEach(seasonNum => {
+                            const option = document.createElement('option');
+                            option.value = seasonNum;
+                            option.textContent = `Temporada ${seasonNum}`;
+                            seasonSelect.appendChild(option);
+                        });
+
+                        const renderEpisodes = (seasonNum) => {
+                            const episodeList = document.getElementById('episode-list');
+                            episodeList.innerHTML = '';
+                            seriesInfo.episodes[seasonNum].forEach(ep => {
+                                const epUrl = `${activeUser.url}/series/${activeUser.user}/${activeUser.pass}/${ep.id}.${ep.container_extension}`;
+                                const item = document.createElement('div');
+                                item.className = 'episode-item';
+                                item.dataset.streamUrl = epUrl;
+                                // MODIFICADO: Adicionado tabindex="0"
+                                item.tabIndex = 0;
+                                item.innerHTML = `
+                                    <img src="${ep.info.movie_image}" onerror="this.onerror=null;this.style.display='none';">
+                                    <div>
+                                        <strong>${ep.episode_num}. ${ep.title}</strong>
+                                        <p>${ep.info.plot || ''}</p>
+                                    </div>
+                                `;
+                                episodeList.appendChild(item);
+                            });
+                        };
+
+                        seasonSelect.onchange = () => renderEpisodes(seasonSelect.value);
+                        renderEpisodes(Object.keys(seriesInfo.episodes)[0]);
+                    }
+                    showPage('series-details');
+                } catch (error) {
+                    console.error('Error fetching series details:', error);
+                }
+            }
+
+            async function renderM3USeriesDetailsPage(seriesName) {
+                const seriesData = appData.series.find(s => s.name === seriesName);
+                if (!seriesData) return;
+
+                document.getElementById('series-details-backdrop').style.backgroundImage = `url('${seriesData.cover || ''}')`;
+                document.getElementById('series-details-title').textContent = seriesData.name;
+                document.getElementById('series-details-plot').textContent = '';
+
+                const seasonSelect = document.getElementById('season-select');
+                seasonSelect.innerHTML = '';
+                
+                const seasons = {};
+                seriesData.episodes.forEach(ep => {
+                    if (!seasons[ep.season]) {
+                        seasons[ep.season] = [];
+                    }
+                    seasons[ep.season].push(ep);
+                });
+
+                Object.keys(seasons).sort((a, b) => a - b).forEach(seasonNum => {
+                    const option = document.createElement('option');
+                    option.value = seasonNum;
+                    option.textContent = `Temporada ${seasonNum}`;
+                    seasonSelect.appendChild(option);
+                });
+
+                const renderEpisodes = (seasonNum) => {
+                    const episodeList = document.getElementById('episode-list');
+                    episodeList.innerHTML = '';
+                    if (!seasons[seasonNum]) return;
+                    
+                    seasons[seasonNum].sort((a,b) => a.episode - b.episode).forEach(ep => {
+                        const item = document.createElement('div');
+                        item.className = 'episode-item';
+                        item.dataset.streamUrl = ep.url;
+                        // MODIFICADO: Adicionado tabindex="0"
+                        item.tabIndex = 0;
+                        item.innerHTML = `
+                            <img src="${ep.logo || seriesData.cover}" onerror="this.onerror=null;this.style.display='none';">
+                            <div>
+                                <strong>Episódio ${ep.episode}</strong>
+                                <p>${ep.title}</p>
+                            </div>
+                        `;
+                        episodeList.appendChild(item);
+                    });
+                };
+
+                seasonSelect.onchange = () => renderEpisodes(seasonSelect.value);
+                if (Object.keys(seasons).length > 0) {
+                    renderEpisodes(Object.keys(seasons)[0]);
+                }
+                
+                showPage('series-details');
+            }
+
+
+            function logout() {
+                localStorage.removeItem('streamflix_session');
+                activeUser = null;
+                window.location.reload();
+            }
+
+            async function checkSession() {
+                const session = localStorage.getItem('streamflix_session');
+                if (session) {
+                    const userData = JSON.parse(session);
+                    if (userData.type === 'xtream') {
+                        await loginWithXtream(userData.url, userData.user, userData.pass);
+                    } else if (userData.type === 'm3u') {
+                        await loginWithM3U(userData.url);
+                    }
+                }
+            }
+
+            function showPage(pageId) {
+                if (pageId !== 'player' && pageId !== 'series-details') lastPageId = pageId;
+                pages.forEach(page => page.classList.remove('active'));
+                const newPage = document.getElementById(`page-${pageId}`);
+                if (newPage) newPage.classList.add('active');
+
+                const titleMap = {
+                    home: 'Início',
+                    series: 'Séries',
+                    movies: 'Filmes',
+                    iptv: 'Canais Ao Vivo',
+                    search: 'Pesquisar',
+                    profile: 'Perfil'
+                };
+                mobilePageTitle.textContent = titleMap[pageId] || 'Início';
+
+
+                if (pageId !== 'player') {
+                    window.scrollTo(0, 0);
+                    desktopLinks.forEach(link => {
+                        link.querySelector('a').classList.toggle('active', link.dataset.page === pageId);
+                    });
+                    mobileLinks.forEach(link => {
+                         link.classList.toggle('active', link.dataset.page === pageId)
+                    });
+                }
+            }
+
+             function updateNavigation() {
+                const navLinks = [...desktopLinks, ...mobileLinks];
+                navLinks.forEach(link => {
+                    const page = link.dataset.page;
+                    let shouldShow = true; // Mostra todos por padrão agora
+                    link.style.display = shouldShow ? '' : 'none';
+                });
+             }
+
+            [...desktopLinks, ...mobileLinks].forEach(link => {
+                const pageId = link.dataset.page;
+                const target = link.tagName === 'LI' ? link.querySelector('a') : link;
+                target.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPage(pageId);
+                });
+            });
+
+            function openPlayer(streamUrl) {
+                if (!streamUrl) return;
+
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+
+                const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
+
+                if (isHls && Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(videoPlayer);
+                } else {
+                    videoPlayer.src = streamUrl;
+                }
+                
+                videoPlayer.load();
+                showPage('player');
+                videoPlayer.play();
+            }
+            
+            mainContent.addEventListener('click', (event) => {
+                const card = event.target.closest('.media-card, .episode-item');
+                if (!card) return;
+                
+                if (card.dataset.seriesId) {
+                    if (activeUser.type === 'xtream') {
+                        renderSeriesDetailsPage(card.dataset.seriesId);
+                    } else {
+                        renderM3USeriesDetailsPage(card.dataset.seriesId);
+                    }
+                } else if (card.dataset.streamUrl) {
+                    openPlayer(card.dataset.streamUrl);
+                }
+            });
+
+            backFromPlayerBtn.addEventListener('click', () => {
+                const isSeriesDetailsActive = document.getElementById('page-series-details').classList.contains('active');
+                showPage(isSeriesDetailsActive ? 'series-details' : lastPageId);
+                
+                videoPlayer.pause();
+                videoPlayer.removeAttribute('src');
+                videoSource.setAttribute('src', '');
+
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                videoPlayer.load();
+            });
+
+            loginTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    loginTabs.forEach(t => t.classList.remove('active'));
+                    loginForms.forEach(f => f.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.form + '-form').classList.add('active');
+                    loginError.textContent = '';
+                });
+            });
+
+            xtreamForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                loginWithXtream(
+                    document.getElementById('xtream-url').value.trim(),
+                    document.getElementById('xtream-user').value.trim(),
+                    document.getElementById('xtream-pass').value.trim()
+                );
+            });
+            
+            m3uForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                loginWithM3U(document.getElementById('m3u-url-input').value.trim());
+            });
+
+             function parseM3U(text) {
+                const lines = text.split('\n');
+                const result = { live: [], vod: [], series: [] };
+                const seriesMap = new Map();
+                let currentItem = {};
+
+                for (const line of lines) {
+                    if (line.startsWith('#EXTINF:')) {
+                        const commaIndex = line.lastIndexOf(',');
+                        const title = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : '';
+                        const infoLine = commaIndex !== -1 ? line.substring(0, commaIndex) : line;
+
+                        const getAttribute = (attr, str) => {
+                            const match = str.match(new RegExp(`${attr}="([^"]*)"`));
+                            return match ? match[1].replace(/"/g, '') : null;
+                        };
+                        
+                        currentItem = {
+                            name: getAttribute('tvg-name', infoLine) || title,
+                            logo: getAttribute('tvg-logo', infoLine),
+                            group: getAttribute('group-title', infoLine) || 'Geral',
+                            raw_title: title
+                        };
+                    } else if (line.trim() && !line.startsWith('#')) {
+                        const url = line.trim();
+                        currentItem.url = url;
+                        if (!currentItem.name || !currentItem.url) {
+                            currentItem = {}; continue;
+                        }
+
+                        const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
+                        const isLive = url.includes('.ts') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
+                        
+                        if(seriesMatch) {
+                           const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
+                           const seasonNum = seriesMatch[2] || seriesMatch[4];
+                           const episodeNum = seriesMatch[3] || seriesMatch[5];
+
+                           if (!seriesMap.has(seriesName)) {
+                               seriesMap.set(seriesName, {
+                                   name: seriesName,
+                                   series_id: seriesName,
+                                   cover: currentItem.logo,
+                                   episodes: []
+                               });
+                           }
+                           
+                           seriesMap.get(seriesName).episodes.push({
+                               title: currentItem.raw_title,
+                               url: currentItem.url,
+                               season: parseInt(seasonNum, 10),
+                               episode: parseInt(episodeNum, 10),
+                               logo: currentItem.logo
+                           });
+
+                        } else if (isLive) {
+                            result.live.push(currentItem);
+                        } else { 
+                            currentItem.stream_icon = currentItem.logo;
+                            currentItem.container_extension = url.split('.').pop();
+                            result.vod.push(currentItem);
+                        }
+                        currentItem = {};
+                    }
+                }
+                result.series = Array.from(seriesMap.values());
+                return result;
+            }
+            
+            logoutBtn.addEventListener('click', logout);
+            mobileLogoutBtn.addEventListener('click', logout);
+            
+            checkSession();
+        });
     </script>
 </body>
 </html>
