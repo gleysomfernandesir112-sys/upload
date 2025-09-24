@@ -128,53 +128,29 @@
         .search-bar input { background: none; border: none; color: white; font-size: 1.2rem; flex-grow: 1; outline: none; padding: 0.75rem 1rem; }
         #search-results h2 { margin-top: 1.5rem; margin-bottom: 1rem; }
         
-        /* Promo Banner */
-        .promo-banner {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(135deg, rgba(40, 40, 40, 0.8), rgba(20, 20, 20, 0.9));
-            border: 1px solid #333;
-            border-radius: 8px;
-            margin: 2rem 5%;
-            padding: 1.5rem;
-            gap: 1rem;
+        /* Profile Page & Logout Button */
+        #page-profile h2 {
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
         }
-        .promo-content h2 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 0.5rem; }
-        .promo-content p { color: #ccc; margin-bottom: 1rem; font-size: 0.9rem; }
-        .promo-features { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.8rem; color: #b3b3b3; }
-        .promo-features li { display: flex; align-items: center; gap: 0.5rem; }
-        .promo-features svg { width: 16px; height: 16px; fill: #2ecc71; }
-        .promo-action { text-align: center; }
-        .promo-price { font-size: 2rem; font-weight: 700; color: var(--text-color); margin-bottom: 0.5rem; }
-        .promo-price span { font-size: 1rem; font-weight: 400; color: #ccc; }
-        .promo-button { display: inline-block; background-color: var(--primary-color); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 5px; font-weight: 700; transition: background-color 0.2s; }
-        .promo-button:hover { background-color: #f40612; }
-
-        /* Estilos do Log de Debug */
-        #debug-log-container {
-            position: fixed;
-            bottom: 80px; /* Acima da navbar mobile */
-            left: 10px;
-            width: calc(100% - 20px);
-            max-width: 500px;
-            height: 150px;
-            background-color: rgba(0, 0, 0, 0.8);
-            border: 1px solid #444;
-            border-radius: 8px;
-            overflow-y: scroll;
-            padding: 8px;
-            font-family: monospace;
-            font-size: 0.7rem;
-            color: #fff;
-            z-index: 9999;
-            pointer-events: none; /* Para não atrapalhar cliques */
+        .logout-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            max-width: 400px;
+            display: block;
+            margin: 2rem auto 0;
         }
-        .log-msg { margin-bottom: 4px; word-break: break-all; }
-        .log-msg.error { color: #ff6b6b; }
-        .log-msg.success { color: #63e6be; }
-        .log-msg.info { color: #99e9f2; }
+        .logout-button:hover {
+            background-color: #f40612;
+        }
 
         @media (min-width: 768px) {
             body { padding-top: 0; }
@@ -188,16 +164,10 @@
             .media-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
             .generic-page { padding-top: 6rem; }
             #page-search { padding-top: 6rem; }
-            .promo-banner { flex-direction: row; text-align: left; }
-            .promo-action { text-align: right; min-width: 200px; }
-            #debug-log-container { bottom: 10px; } /* Ajuste para Desktop */
         }
     </style>
 </head>
 <body>
-
-    <div id="debug-log-container"></div>
-
     <div id="login-container">
         <div class="login-box">
             <h1>Entrar</h1>
@@ -266,6 +236,10 @@
                         <div id="episode-list"></div>
                     </div>
                 </div>
+                <div id="page-profile" class="page generic-page">
+                    <h2>Perfil e Configurações</h2>
+                    <button id="mobile-logout-btn" class="logout-button">Sair da Conta</button>
+                </div>
             </main>
 
             <div id="page-player" class="page player-page">
@@ -281,14 +255,13 @@
                 <button class="nav-item" data-page="movies"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/movie-projector.png" alt="Filmes"/> <span>Filmes</span> </button>
                 <button class="nav-item" data-page="iptv"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/playlist.png" alt="IPTV"/> <span>Ao Vivo</span> </button>
                 <button class="nav-item" data-page="search"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/search.png" alt="Pesquisar"/> <span>Pesquisar</span> </button>
+                <button class="nav-item" data-page="profile"> <img src="https://img.icons8.com/fluency-systems-filled/48/ffffff/user-male-circle.png" alt="Perfil"/> <span>Perfil</span> </button>
             </nav>
         </div>
     </div>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const APP_VERSION = '1.3.0 (23/09/2025)';
-
             const loginContainer = document.getElementById('login-container');
             const appWrapper = document.querySelector('.app-wrapper');
             const mainContent = document.querySelector('.main-content');
@@ -300,6 +273,7 @@
             const videoPlayer = document.querySelector('#page-player video');
             const videoSource = videoPlayer.querySelector('source');
             const logoutBtn = document.getElementById('logout-btn');
+            const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
             const loginTabs = document.querySelectorAll('.login-tab');
             const loginForms = document.querySelectorAll('.login-form');
             const xtreamForm = document.getElementById('xtream-form');
@@ -308,7 +282,6 @@
             const loginLoader = document.getElementById('login-loader');
             const searchInput = document.getElementById('search-input');
             const searchResultsContainer = document.getElementById('search-results');
-            const debugLogContainer = document.getElementById('debug-log-container');
             
             let lastPageId = 'home';
             let activeUser = null;
@@ -319,21 +292,9 @@
             let searchTimeout;
             let hls = null;
 
-            function logToScreen(message, type = 'info') {
-                console.log(`[${type.toUpperCase()}] ${message}`);
-                const msgEl = document.createElement('div');
-                msgEl.className = `log-msg ${type}`;
-                msgEl.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                debugLogContainer.appendChild(msgEl);
-                debugLogContainer.scrollTop = debugLogContainer.scrollHeight;
-            }
-
-            logToScreen(`App ${APP_VERSION} iniciado.`, 'success');
-
             function showLoginError(message) {
                 loginError.textContent = message;
                 loginLoader.style.display = 'none';
-                logToScreen(`Erro de Login: ${message}`, 'error');
             }
 
             function showApp(loginType) {
@@ -342,7 +303,6 @@
                 updateNavigation();
                 const startPage = (loginType === 'm3u' && appData.vodStreams.length === 0 && appData.series.length === 0) ? 'iptv' : 'home';
                 showPage(startPage);
-                logToScreen(`App carregado com sucesso (tipo: ${loginType}).`, 'success');
             }
 
             function initializeLazyLoader() {
@@ -360,19 +320,12 @@
             }
             
             async function fetchAPI(url) {
-                logToScreen(`Buscando dados de: ${url}`, 'info');
                 try {
                     const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`Erro HTTP! Status: ${response.status}`);
-                    }
-                    logToScreen(`Sucesso ao buscar: ${url}`, 'success');
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response;
                 } catch (error) {
-                    logToScreen(`Falha de rede para ${url}. Erro: ${error.message}`, 'error');
-                    if (error.message.includes('Failed to fetch')) {
-                        logToScreen('Isso geralmente é um erro de CORS no WebView/Navegador.', 'error');
-                    }
+                    if (error instanceof TypeError) throw new Error(`Falha na rede ou erro de CORS.`);
                     throw error;
                 }
             }
@@ -388,8 +341,6 @@
                     if (data.user_info && data.user_info.auth === 0) throw new Error('Credenciais inválidas.');
                     return data;
                 } catch(e) {
-                    console.error("Raw response that failed to parse:", textData);
-                    logToScreen('Resposta inválida do servidor (não é JSON).', 'error');
                     throw new Error('Resposta inválida do servidor (não é JSON).');
                 }
             }
@@ -410,7 +361,6 @@
                     renderAllPages();
                     showApp('xtream');
                 } catch (error) {
-                    console.error("Erro de Login Xtream:", error);
                     showLoginError(error.message || 'Falha ao carregar dados.');
                 } finally {
                     loginLoader.style.display = 'none';
@@ -431,7 +381,6 @@
                     renderAllPages();
                     showApp('m3u');
                 } catch (error) {
-                    console.error("Erro de Login M3U:", error);
                     showLoginError(error.message);
                 } finally {
                     loginLoader.style.display = 'none';
@@ -456,34 +405,12 @@
                 }
                 const title = firstItem.name;
                 const image = firstItem.stream_icon || firstItem.cover;
-                
-                const promoBannerHtml = `
-                    <section class="promo-banner">
-                        <div class="promo-content">
-                            <h2>Assine o Plano Premium e tenha o Melhor Conteúdo!</h2>
-                            <p>Tenha acesso a uma experiência completa de entretenimento. Nosso aplicativo funciona em TV, celular e computador, com garantia de qualidade em todo o conteúdo. Se um canal estiver offline, nosso suporte 24/7 troca o servidor para você na hora!</p>
-                            <ul class="promo-features">
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>+300 mil conteúdos</li>
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Suporte 24/7</li>
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Qualidade Garantida</li>
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Multiplataforma (TV, Celular, PC)</li>
-                                <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Troca de Servidor via Suporte</li>
-                            </ul>
-                        </div>
-                        <div class="promo-action">
-                            <div class="promo-price">R$ 25,00 <span>/mês</span></div>
-                            <a href="https://wa.me/5511000000000?text=Ol%C3%A1%21+Gostaria+de+saber+mais+sobre+o+plano+de+IPTV." target="_blank" class="promo-button">Assinar Agora</a>
-                        </div>
-                    </section>
-                `;
-
                 homeContent.innerHTML = `
                     <header class="hero-section" style="background-image: linear-gradient(to top, #141414 10%, transparent 50%), url('${image}');">
                         <div class="hero-content">
                             <h1 class="hero-title">${title}</h1>
                         </div>
                     </header>
-                    ${promoBannerHtml}
                 `;
             }
 
@@ -538,7 +465,7 @@
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
                     if (pageId === 'series') {
-                        seriesId = item.name; // Usar o nome da série como ID
+                        seriesId = item.name;
                     } else {
                         streamUrl = item.url;
                     }
@@ -587,7 +514,6 @@
 
 
             async function renderSeriesDetailsPage(seriesId) {
-                if(activeUser.type !== 'xtream') return;
                 try {
                     const seriesInfo = await fetchXtreamData(activeUser.url, activeUser.user, activeUser.pass, `get_series_info&series_id=${seriesId}`);
                     
@@ -639,7 +565,7 @@
 
                 document.getElementById('series-details-backdrop').style.backgroundImage = `url('${seriesData.cover || ''}')`;
                 document.getElementById('series-details-title').textContent = seriesData.name;
-                document.getElementById('series-details-plot').textContent = ''; // M3U não fornece plot
+                document.getElementById('series-details-plot').textContent = '';
 
                 const seasonSelect = document.getElementById('season-select');
                 seasonSelect.innerHTML = '';
@@ -712,11 +638,15 @@
                 const newPage = document.getElementById(`page-${pageId}`);
                 if (newPage) newPage.classList.add('active');
 
-                const linkElement = document.querySelector(`.nav-item[data-page="${pageId}"]`) || document.querySelector(`.nav-link[data-page="${pageId}"] a`);
-                if (linkElement) {
-                    const text = (linkElement.textContent.trim() || linkElement.querySelector('span')?.textContent.trim())?.replace('Pesquisar', 'Busca');
-                    if(text) mobilePageTitle.textContent = text;
-                }
+                const titleMap = {
+                    home: 'Início',
+                    series: 'Séries',
+                    movies: 'Filmes',
+                    iptv: 'Canais Ao Vivo',
+                    search: 'Pesquisar',
+                    profile: 'Perfil'
+                };
+                mobilePageTitle.textContent = titleMap[pageId] || 'Início';
 
 
                 if (pageId !== 'player') {
@@ -734,13 +664,7 @@
                 const navLinks = [...desktopLinks, ...mobileLinks];
                 navLinks.forEach(link => {
                     const page = link.dataset.page;
-                    let shouldShow = false;
-                    if (page === 'home' && (appData.vodStreams.length > 0 || appData.series.length > 0)) shouldShow = true;
-                    if (page === 'series' && appData.series.length > 0) shouldShow = true;
-                    if (page === 'movies' && appData.vodStreams.length > 0) shouldShow = true;
-                    if (page === 'iptv' && appData.liveStreams.length > 0) shouldShow = true;
-                    if (page === 'search') shouldShow = true;
-                    
+                    let shouldShow = true; // Mostra todos por padrão agora
                     link.style.display = shouldShow ? '' : 'none';
                 });
              }
@@ -755,12 +679,7 @@
             });
 
             function openPlayer(streamUrl) {
-                if (!streamUrl) {
-                    logToScreen('Tentativa de abrir player com URL vazia.', 'error');
-                    return;
-                }
-                
-                logToScreen(`Abrindo player para: ${streamUrl}`, 'info');
+                if (!streamUrl) return;
 
                 if (hls) {
                     hls.destroy();
@@ -770,40 +689,17 @@
                 const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
 
                 if (isHls && Hls.isSupported()) {
-                    logToScreen('Detectado HLS. Usando Hls.js.', 'info');
                     hls = new Hls();
                     hls.loadSource(streamUrl);
                     hls.attachMedia(videoPlayer);
-                    videoSource.removeAttribute('src'); 
-                    videoPlayer.load();
                 } else {
-                    logToScreen('Detectado vídeo direto (MP4/etc). Usando <video> src.', 'info');
                     videoPlayer.src = streamUrl;
-                    videoPlayer.load();
                 }
                 
+                videoPlayer.load();
                 showPage('player');
-                videoPlayer.play().catch(e => {
-                    logToScreen(`Erro ao tentar dar play: ${e.message}`, 'error');
-                });
+                videoPlayer.play();
             }
-            
-            // LOGS PARA O PLAYER DE VÍDEO
-            videoPlayer.addEventListener('error', () => {
-                const error = videoPlayer.error;
-                let errorMessage = `Erro no player de vídeo (código ${error.code}): `;
-                switch(error.code) {
-                    case 1: errorMessage += "Busca abortada pelo usuário."; break;
-                    case 2: errorMessage += "Erro de rede ao baixar o vídeo."; break;
-                    case 3: errorMessage += "Erro ao decodificar o vídeo."; break;
-                    case 4: errorMessage += "Formato de vídeo não suportado ou URL inválida (MEDIA_ERR_SRC_NOT_SUPPORTED)."; break;
-                    default: errorMessage += "Ocorreu um erro desconhecido no player.";
-                }
-                logToScreen(errorMessage, 'error');
-            });
-            videoPlayer.addEventListener('stalled', () => {
-                logToScreen('Download do vídeo travou (stalled). Verificando conexão...', 'error');
-            });
             
             mainContent.addEventListener('click', (event) => {
                 const card = event.target.closest('.media-card, .episode-item');
@@ -812,7 +708,7 @@
                 if (card.dataset.seriesId) {
                     if (activeUser.type === 'xtream') {
                         renderSeriesDetailsPage(card.dataset.seriesId);
-                    } else { // M3U
+                    } else {
                         renderM3USeriesDetailsPage(card.dataset.seriesId);
                     }
                 } else if (card.dataset.streamUrl) {
@@ -900,7 +796,7 @@
                            if (!seriesMap.has(seriesName)) {
                                seriesMap.set(seriesName, {
                                    name: seriesName,
-                                   series_id: seriesName, // Usamos o nome como ID
+                                   series_id: seriesName,
                                    cover: currentItem.logo,
                                    episodes: []
                                });
@@ -929,6 +825,7 @@
             }
             
             logoutBtn.addEventListener('click', logout);
+            mobileLogoutBtn.addEventListener('click', logout);
             
             checkSession();
         });
