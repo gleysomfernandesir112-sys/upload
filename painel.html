@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Administração - Fast IPTV</title>
+    <style>
+        body { font-family: sans-serif; background-color: #2c3e50; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: #34495e; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); min-width: 400px; }
+        h1 { text-align: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 4px; border: 1px solid #7f8c8d; background: #2c3e50; color: white; }
+        button { width: 100%; padding: 12px; background-color: #e67e22; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #d35400; }
+        #message { margin-top: 20px; text-align: center; font-weight: bold; }
+        .success { color: #2ecc71; }
+        .error { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Criar Novo Usuário</h1>
+        <form id="create-user-form">
+            <div class="form-group">
+                <label for="username">Nome de Usuário</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+            </div>
+            <hr style="margin: 20px 0; border-color: #7f8c8d;">
+            <div class="form-group">
+                <label for="xtream-url">URL Xtream (Filmes/Séries)</label>
+                <input type="text" id="xtream-url" placeholder="http://domain.com:port" required>
+            </div>
+            <div class="form-group">
+                <label for="xtream-user">Usuário Xtream</label>
+                <input type="text" id="xtream-user" required>
+            </div>
+            <div class="form-group">
+                <label for="xtream-pass">Senha Xtream</label>
+                <input type="password" id="xtream-pass" required>
+            </div>
+            <hr style="margin: 20px 0; border-color: #7f8c8d;">
+            <div class="form-group">
+                <label for="m3u-url">URL M3U (Canais Ao Vivo)</label>
+                <input type="url" id="m3u-url" required>
+            </div>
+            <button type="submit">Criar Usuário</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
+          authDomain: "fasthub-9a206.firebaseapp.com",
+          databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
+          projectId: "fasthub-9a206",
+          storageBucket: "fasthub-9a206.appspot.com",
+          messagingSenderId: "685686875831",
+          appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const form = document.getElementById('create-user-form');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const xtreamUrl = document.getElementById('xtream-url').value;
+            const xtreamUser = document.getElementById('xtream-user').value;
+            const xtreamPass = document.getElementById('xtream-pass').value;
+            const m3uUrl = document.getElementById('m3u-url').value;
+
+            const email = username + '@fast-iptv.user';
+
+            messageDiv.textContent = 'Criando usuário...';
+            messageDiv.className = '';
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('Usuário criado na autenticação:', user.uid);
+                    
+                    return db.ref('fast-iptv/' + user.uid).set({
+                        username: username,
+                        xtreamUrl: xtreamUrl,
+                        xtreamUser: xtreamUser,
+                        xtreamPass: xtreamPass,
+                        m3uUrl: m3uUrl
+                    });
+                })
+                .then(() => {
+                    messageDiv.textContent = 'Usuário criado com sucesso!';
+                    messageDiv.className = 'success';
+                    form.reset();
+                })
+                .catch((error) => {
+                    console.error("Erro ao criar usuário:", error);
+                    messageDiv.textContent = `Erro: ${error.message}`;
+                    messageDiv.className = 'error';
+                });
+        });
+    </script>
+</body>
+</html>
