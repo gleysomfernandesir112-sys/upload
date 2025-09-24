@@ -75,9 +75,9 @@
         .nav-link a:hover, .nav-link a.active { color: #b3b3b3; font-weight: 700; }
         .profile { position: relative; margin-left: auto; }
         .profile img { border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
-        .profile-menu { display: none; position: absolute; right: 0; top: 50px; background-color: #181818; border-radius: 5px; overflow: hidden; }
+        .profile-menu { display: none; position: absolute; right: 0; top: 50px; background-color: #181818; border-radius: 5px; overflow: hidden; min-width: 150px; }
         .profile:hover .profile-menu { display: block; }
-        .profile-menu button { background: none; border: none; color: white; padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; text-align: left; }
+        .profile-menu button { background: none; border: none; color: white; padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; text-align: left; font-size: 1rem; }
         .profile-menu button:hover { background-color: #333; }
 
         .hero-section { height: 60vh; display: flex; flex-direction: column; justify-content: center; padding: 0 5%; position: relative; background-size: cover; background-position: center center; }
@@ -122,34 +122,38 @@
         .nav-item.active { color: var(--text-color); }
         .nav-item.active img { filter: none; }
         
-        /* Search */
         #page-search { padding: 1rem 5%; }
         .search-bar { display: flex; align-items: stretch; background-color: #333; border-radius: 5px; margin-bottom: 2rem; }
         .search-bar input { background: none; border: none; color: white; font-size: 1.2rem; flex-grow: 1; outline: none; padding: 0.75rem 1rem; }
         #search-results h2 { margin-top: 1.5rem; margin-bottom: 1rem; }
         
-        /* Profile Page & Logout Button */
-        #page-profile h2 {
-            margin-bottom: 2rem;
-            text-align: center;
-            font-size: 1.5rem;
-        }
+        #page-profile h2, #page-profile h3 { text-align: center; margin-bottom: 1rem; }
+        #page-profile h3 { font-weight: 400; color: #ccc; margin-bottom: 2rem; }
+
         .logout-button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 1rem;
-            font-size: 1.2rem;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            max-width: 400px;
-            display: block;
-            margin: 2rem auto 0;
+            background-color: var(--primary-color); color: white; border: none;
+            border-radius: 5px; padding: 1rem; font-size: 1.2rem; font-weight: 700;
+            cursor: pointer; width: 100%; max-width: 400px; display: block; margin: 4rem auto 0;
         }
-        .logout-button:hover {
-            background-color: #f40612;
+        .logout-button:hover { background-color: #f40612; }
+
+        .device-selector { margin-top: 2rem; }
+        .device-selector-title { text-align: center; font-weight: 500; color: #aaa; margin-bottom: 1rem; }
+        .device-options { display: flex; justify-content: center; gap: 1rem; }
+        .device-option {
+            background-color: #333;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .device-option:hover { background-color: #444; }
+        .device-option.active {
+            border-color: var(--primary-color);
+            background-color: rgba(229, 9, 20, 0.2);
+            font-weight: 700;
         }
 
         @media (min-width: 768px) {
@@ -166,78 +170,24 @@
             #page-search { padding-top: 6rem; }
         }
 
-        /* =================================== */
-        /* ESTILOS PARA MODO TV (10-FOOT UI)   */
-        /* =================================== */
-
-        .tv-mode {
-            /* Fontes maiores em todo o app */
-            font-size: 18px;
-        }
-
-        /* Esconde a barra de rolagem visualmente */
-        .tv-mode body::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* Destaque de Foco Visível para Navegação */
+        .tv-mode { font-size: 18px; cursor: none; }
+        .tv-mode body::-webkit-scrollbar { display: none; }
         .tv-mode *:focus {
-            outline: 4px solid #E50914 !important; /* Destaque forte */
+            outline: 4px solid #E50914 !important;
             box-shadow: 0 0 20px rgba(229, 9, 20, 0.7);
             transition: transform 0.2s ease-in-out, outline 0.1s linear;
             transform: scale(1.08);
             z-index: 10;
         }
-
-        /* Oculta o cursor do mouse quando o modo TV está ativo */
-        .tv-mode {
-            cursor: none;
-        }
-
-        /* Ajustes de Layout para TV */
-        .tv-mode .navbar-desktop,
-        .tv-mode .navbar-mobile {
-            /* Navbar pode precisar de mais espaço ou um layout diferente */
-            padding: 1.5rem 4rem;
-        }
-
-        .tv-mode .nav-link a, .tv-mode .nav-item {
-            font-size: 1.2rem; /* Fontes maiores na navegação */
-        }
-
-        /* Cards maiores e com mais espaçamento */
-        .tv-mode .media-grid {
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px; /* Mais espaço entre os cards */
-        }
-
-        .tv-mode .media-card {
-            border-radius: 12px;
-        }
-
-        /* Página de detalhes da série */
-        .tv-mode #series-details-info {
-            padding: 2rem 5%;
-        }
-        .tv-mode #series-details-info h1 {
-            font-size: 3rem;
-        }
-        .tv-mode .episode-item {
-            padding: 1.5rem;
-            border-radius: 8px;
-        }
-
-        /* Player */
-        .tv-mode .back-from-player {
-            width: 60px;
-            height: 60px;
-            top: 3rem;
-            left: 3rem;
-        }
-        .tv-mode .back-from-player svg {
-            width: 35px;
-            height: 35px;
-        }
+        .tv-mode .navbar-desktop, .tv-mode .navbar-mobile { padding: 1.5rem 4rem; }
+        .tv-mode .nav-link a, .tv-mode .nav-item { font-size: 1.2rem; }
+        .tv-mode .media-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 25px; }
+        .tv-mode .media-card { border-radius: 12px; }
+        .tv-mode #series-details-info { padding: 2rem 5%; }
+        .tv-mode #series-details-info h1 { font-size: 3rem; }
+        .tv-mode .episode-item { padding: 1.5rem; border-radius: 8px; }
+        .tv-mode .back-from-player { width: 60px; height: 60px; top: 3rem; left: 3rem; }
+        .tv-mode .back-from-player svg { width: 35px; height: 35px; }
     </style>
 </head>
 <body>
@@ -259,16 +209,21 @@
                 <button type="submit">Carregar Lista</button>
             </form>
             <div id="login-error"></div>
-             <div class="loader-container" id="login-loader">
-                <div class="loader"></div>
+            <div class="loader-container" id="login-loader"><div class="loader"></div></div>
+
+            <div class="device-selector" id="login-device-selector">
+                <div class="device-selector-title">Estou usando em:</div>
+                <div class="device-options">
+                    <div class="device-option" data-device="computer" tabindex="0">Computador</div>
+                    <div class="device-option" data-device="mobile" tabindex="0">Celular</div>
+                    <div class="device-option" data-device="tv" tabindex="0">Televisão</div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="app-wrapper">
-        <header class="mobile-header">
-            <h1 id="mobile-page-title">Início</h1>
-        </header>
+        <header class="mobile-header"><h1 id="mobile-page-title">Início</h1></header>
         <div class="app-container">
             <nav class="navbar-desktop">
                 <div class="logo">FAST</div>
@@ -282,6 +237,7 @@
                 <div class="profile"> 
                     <img src="https://i.pravatar.cc/40" alt="Perfil" tabindex="0"> 
                     <div class="profile-menu">
+                        <button class="nav-item" data-page="profile">Minha Conta</button>
                         <button id="logout-btn">Sair</button>
                     </div>
                 </div>
@@ -293,9 +249,7 @@
                 <div id="page-movies" class="page generic-page"><div id="movies-content" class="media-grid"></div></div>
                 <div id="page-iptv" class="page generic-page"><div id="iptv-content" class="media-grid"></div></div>
                 <div id="page-search" class="page generic-page">
-                    <div class="search-bar">
-                        <input type="text" id="search-input" placeholder="Buscar em todo o conteúdo...">
-                    </div>
+                    <div class="search-bar"><input type="text" id="search-input" placeholder="Buscar em todo o conteúdo..."></div>
                     <div id="search-results"></div>
                 </div>
                 <div id="page-series-details" class="page">
@@ -303,22 +257,27 @@
                     <div id="series-details-info">
                         <h1 id="series-details-title"></h1>
                         <p id="series-details-plot"></p>
-                        <div class="season-selector">
-                            <select id="season-select"></select>
-                        </div>
+                        <div class="season-selector"><select id="season-select"></select></div>
                         <div id="episode-list"></div>
                     </div>
                 </div>
                 <div id="page-profile" class="page generic-page">
                     <h2>Perfil e Configurações</h2>
+                    <h3>Gerencie suas preferências de visualização.</h3>
+                    <div class="device-selector" id="profile-device-selector">
+                        <div class="device-selector-title">Modo de Visualização:</div>
+                        <div class="device-options">
+                            <div class="device-option" data-device="computer" tabindex="0">Computador</div>
+                            <div class="device-option" data-device="mobile" tabindex="0">Padrão (Celular)</div>
+                            <div class="device-option" data-device="tv" tabindex="0">Televisão</div>
+                        </div>
+                    </div>
                     <button id="mobile-logout-btn" class="logout-button">Sair da Conta</button>
                 </div>
             </main>
 
             <div id="page-player" class="page player-page">
-                <button class="back-from-player">
-                    <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg>
-                </button>
+                <button class="back-from-player"><svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg></button>
                 <video controls autoplay><source src="" type="video/mp4"></video>
             </div>
 
@@ -339,7 +298,7 @@
             const appWrapper = document.querySelector('.app-wrapper');
             const mainContent = document.querySelector('.main-content');
             const pages = document.querySelectorAll('.page');
-            const desktopLinks = document.querySelectorAll('.navbar-desktop .nav-links .nav-link');
+            const desktopLinks = document.querySelectorAll('.navbar-desktop .nav-links .nav-link, .profile-menu .nav-item');
             const mobileLinks = document.querySelectorAll('.navbar-mobile .nav-item');
             const mobilePageTitle = document.getElementById('mobile-page-title');
             const backFromPlayerBtn = document.querySelector('.back-from-player');
@@ -364,45 +323,62 @@
             let lazyLoadObserver;
             let searchTimeout;
             let hls = null;
-            
-            // =================================== //
-            // LÓGICA PARA MODO TV (NOVA)          //
-            // =================================== //
-            let isTvMode = false;
 
-            function enableTvMode() {
-                if (isTvMode) return;
-                isTvMode = true;
-                document.body.classList.add('tv-mode');
-                console.log("TV Mode Ativado!");
-                // Foca no primeiro item navegável
-                const firstFocusable = document.querySelector('.nav-item[data-page="home"], .nav-link[data-page="home"] a');
-                if (firstFocusable) {
-                    setTimeout(() => firstFocusable.focus(), 100);
-                }
+            // --- LÓGICA DE SELEÇÃO DE DISPOSITIVO ---
+            function saveDevicePreference(device) {
+                localStorage.setItem('device_preference', device);
             }
 
-            // Ouve por teclas de navegação para ativar o modo TV
-            window.addEventListener('keydown', (e) => {
-                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
-                    enableTvMode();
+            function getDevicePreference() {
+                return localStorage.getItem('device_preference');
+            }
+            
+            function applyDeviceMode(device) {
+                document.body.classList.remove('tv-mode');
+                if (device === 'tv') {
+                    document.body.classList.add('tv-mode');
+                }
+                document.querySelectorAll('.device-option').forEach(opt => {
+                    opt.classList.toggle('active', opt.dataset.device === device);
+                });
+                saveDevicePreference(device);
+            }
+
+            function autoEnableTvMode() {
+                if (getDevicePreference()) return;
+                console.log("TV Mode Ativado Automaticamente!");
+                applyDeviceMode('tv');
+            }
+            
+            document.addEventListener('click', (e) => {
+                const deviceOption = e.target.closest('.device-option');
+                if (deviceOption) {
+                    const selectedDevice = deviceOption.dataset.device;
+                    applyDeviceMode(selectedDevice);
                 }
             });
 
-            // Opcional, mas recomendado: usar a Gamepad API para uma detecção mais robusta
-            window.addEventListener("gamepadconnected", (event) => {
-                console.log("Controle conectado:", event.gamepad.id);
-                enableTvMode();
-            });
+            function initializeDeviceMode() {
+                const preferredDevice = getDevicePreference();
+                if (preferredDevice) {
+                    applyDeviceMode(preferredDevice);
+                } else {
+                    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                    applyDeviceMode(isMobile ? 'mobile' : 'computer');
+                }
+            }
             
-            // Simula clique com a tecla "Enter"
-            document.body.addEventListener('keydown', (e) => {
+            window.addEventListener('keydown', (e) => {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    autoEnableTvMode();
+                }
                 if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName !== 'INPUT') {
                     e.preventDefault();
                     document.activeElement.click();
                 }
             });
-            // =================================== //
+
+            window.addEventListener("gamepadconnected", autoEnableTvMode);
             
             function showLoginError(message) {
                 loginError.textContent = message;
@@ -413,6 +389,7 @@
                 loginContainer.style.display = 'none';
                 appWrapper.style.display = 'block';
                 updateNavigation();
+                initializeDeviceMode();
                 const startPage = (loginType === 'm3u' && appData.vodStreams.length === 0 && appData.series.length === 0) ? 'iptv' : 'home';
                 showPage(startPage);
             }
@@ -441,7 +418,6 @@
                     throw error;
                 }
             }
-
 
             async function fetchXtreamData(url, user, pass, action) {
                 const targetUrl = `${url}/player_api.php?username=${user}&password=${pass}&action=${action}`;
@@ -583,7 +559,6 @@
                     }
                 }
 
-                // MODIFICADO: Adicionado tabindex="0" para permitir foco
                 return `
                     <div class="media-card" tabindex="0" data-stream-url="${streamUrl}" data-series-id="${seriesId}">
                         <img src="${image}" alt="${title}" onerror="this.onerror=null;this.src='https://placehold.co/400x600/222/fff?text=${encodeURIComponent(title)}';">
@@ -652,7 +627,6 @@
                                 const item = document.createElement('div');
                                 item.className = 'episode-item';
                                 item.dataset.streamUrl = epUrl;
-                                // MODIFICADO: Adicionado tabindex="0"
                                 item.tabIndex = 0;
                                 item.innerHTML = `
                                     <img src="${ep.info.movie_image}" onerror="this.onerror=null;this.style.display='none';">
@@ -709,7 +683,6 @@
                         const item = document.createElement('div');
                         item.className = 'episode-item';
                         item.dataset.streamUrl = ep.url;
-                        // MODIFICADO: Adicionado tabindex="0"
                         item.tabIndex = 0;
                         item.innerHTML = `
                             <img src="${ep.logo || seriesData.cover}" onerror="this.onerror=null;this.style.display='none';">
@@ -729,7 +702,6 @@
                 
                 showPage('series-details');
             }
-
 
             function logout() {
                 localStorage.removeItem('streamflix_session');
@@ -765,11 +737,11 @@
                 };
                 mobilePageTitle.textContent = titleMap[pageId] || 'Início';
 
-
                 if (pageId !== 'player') {
                     window.scrollTo(0, 0);
                     desktopLinks.forEach(link => {
-                        link.querySelector('a').classList.toggle('active', link.dataset.page === pageId);
+                        const target = link.tagName === 'LI' ? link.querySelector('a') : link;
+                        target.classList.toggle('active', link.dataset.page === pageId);
                     });
                     mobileLinks.forEach(link => {
                          link.classList.toggle('active', link.dataset.page === pageId)
@@ -781,7 +753,7 @@
                 const navLinks = [...desktopLinks, ...mobileLinks];
                 navLinks.forEach(link => {
                     const page = link.dataset.page;
-                    let shouldShow = true; // Mostra todos por padrão agora
+                    let shouldShow = true;
                     link.style.display = shouldShow ? '' : 'none';
                 });
              }
@@ -791,7 +763,7 @@
                 const target = link.tagName === 'LI' ? link.querySelector('a') : link;
                 target.addEventListener('click', (e) => {
                     e.preventDefault();
-                    showPage(pageId);
+                    if(pageId) showPage(pageId);
                 });
             });
 
@@ -839,7 +811,7 @@
                 
                 videoPlayer.pause();
                 videoPlayer.removeAttribute('src');
-                videoSource.setAttribute('src', '');
+                if (videoSource) videoSource.setAttribute('src', '');
 
                 if (hls) {
                     hls.destroy();
@@ -944,6 +916,7 @@
             logoutBtn.addEventListener('click', logout);
             mobileLogoutBtn.addEventListener('click', logout);
             
+            initializeDeviceMode();
             checkSession();
         });
     </script>
