@@ -84,15 +84,14 @@
         .media-card img { width: 100%; height: 100%; object-fit: cover; }
         .media-card-title { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); font-size: 1rem; padding: 10px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 
-        a:focus, button:focus, input:focus, select:focus, .media-card:focus, .episode-item:focus {
+        a:focus, button:focus, input:focus, select:focus, .media-card:focus, .episode-item:focus, .login-tab:focus {
             transition: transform 0.2s ease-in-out, outline 0.1s linear;
             outline: 5px solid var(--primary-color);
             outline-offset: 5px;
-            transform: scale(1.08);
             z-index: 10;
         }
-        .nav-link a:focus, .login-form input:focus, .login-form button:focus {
-             transform: scale(1.0);
+        .media-card:focus, .episode-item:focus {
+            transform: scale(1.08);
         }
         
         .player-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 200; display: none; align-items: center; justify-content: center; }
@@ -121,8 +120,8 @@
         <div class="login-box">
             <h1>Entrar</h1>
             <div class="login-tabs">
-                <div class="login-tab active" data-form="xtream">API Xtream Codes</div>
-                <div class="login-tab" data-form="m3u">Lista M3U</div>
+                <div class="login-tab active" data-form="xtream" tabindex="0">API Xtream Codes</div>
+                <div class="login-tab" data-form="m3u" tabindex="0">Lista M3U</div>
             </div>
             <form id="xtream-form" class="login-form active">
                 <input type="text" id="xtream-url" placeholder="URL do Servidor" required>
@@ -162,7 +161,7 @@
                     <h1 id="series-details-title"></h1>
                     <p id="series-details-plot"></p>
                     <div class="season-selector">
-                        <select id="season-select"></select>
+                        <select id="season-select" tabindex="0"></select>
                     </div>
                     <div id="episode-list"></div>
                 </div>
@@ -190,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const xtreamForm = document.getElementById('xtream-form');
     const m3uForm = document.getElementById('m3u-form');
     const loginError = document.getElementById('login-error');
+    const loginTabs = document.querySelectorAll('.login-tab');
 
     let lastPageId = 'home';
     let activeUser = null;
@@ -223,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loginWithXtream(url, user, pass) {
+        showLoginError('');
         try {
             await fetchXtreamData(url, user, pass, 'get_user_info');
             const [liveStreams, vodStreams, series] = await Promise.all([
@@ -237,10 +238,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loginWithM3U(url) {
+        showLoginError('');
         try {
             const response = await fetchAPI(url);
             const m3uText = await response.text();
             const content = parseM3U(m3uText);
+            if (content.live.length === 0 && content.vod.length === 0 && content.series.length === 0) {
+                throw new Error("A lista M3U está vazia ou em um formato inválido.");
+            }
             initializeApp(content, { type: 'm3u', url });
         } catch (error) {
             showLoginError(error.message);
@@ -329,11 +334,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const info = activeUser.type === 'xtream' ? seriesData.info : seriesData;
             const episodesBySeason = activeUser.type === 'xtream' ? seriesData.episodes : parseM3UEpisodes(seriesData.episodes);
             
-            document.getElementById('series-details-backdrop').style.backgroundImage = `url('${info.backdrop_path?.[0] || info.cover || ''}')`;
-            document.getElementById('series-details-title').textContent = info.name;
-            document.getElementById('series-details-plot').textContent = info.plot || '';
+            const detailsPage = document.getElementById('page-series-details');
+            detailsPage.querySelector('#series-details-backdrop').style.backgroundImage = `url('${info.backdrop_path?.[0] || info.cover || ''}')`;
+            detailsPage.querySelector('#series-details-title').textContent = info.name;
+            detailsPage.querySelector('#series-details-plot').textContent = info.plot || '';
             
-            const seasonSelect = document.getElementById('season-select');
+            const seasonSelect = detailsPage.querySelector('#season-select');
             seasonSelect.innerHTML = '';
             Object.keys(episodesBySeason).sort((a, b) => a - b).forEach(seasonNum => {
                 const option = document.createElement('option');
@@ -343,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const renderEpisodes = (seasonNum) => {
-                const episodeList = document.getElementById('episode-list');
+                const episodeList = detailsPage.querySelector('#episode-list');
                 episodeList.innerHTML = '';
                 episodesBySeason[seasonNum].sort((a, b) => (a.episode_num || a.episode) - (b.episode_num || b.episode)).forEach(ep => {
                     const epUrl = activeUser.type === 'xtream' 
@@ -371,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showPage('series-details');
         } catch (error) {
             console.error('Error fetching series details:', error);
-            showPage(lastPageId); // Volta para a página anterior em caso de erro
+            showPage(lastPageId);
         }
     }
 
@@ -448,8 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let nextElement = null;
         
-        // Lógica de navegação espacial é complexa, esta é uma simplificação.
-        // O ideal é usar uma biblioteca como 'spatial-navigation-js'.
+        // Lógica de navegação simplificada. Uma biblioteca dedicada seria mais robusta.
         switch (e.key) {
             case 'ArrowRight':
                 if (currentIndex < focusableElements.length - 1) nextElement = focusableElements[currentIndex + 1];
@@ -466,6 +471,17 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             nextElement.focus();
         }
+    });
+    
+    loginTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            loginTabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.form + '-form').classList.add('active');
+            loginError.textContent = '';
+        });
     });
 
     navLinks.forEach(link => {
@@ -496,38 +512,63 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function parseM3U(text) {
-    const lines = text.split('\n');
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
     const result = { live: [], vod: [], series: [] };
     const seriesMap = new Map();
-    let currentItem = {};
+    let currentItem = null;
 
     for (const line of lines) {
         if (line.startsWith('#EXTINF:')) {
             const commaIndex = line.lastIndexOf(',');
-            const title = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : '';
+            const title = commaIndex !== -1 ? line.substring(commaIndex + 1) : '';
             const infoLine = commaIndex !== -1 ? line.substring(0, commaIndex) : line;
-            const getAttribute = (attr, str) => { const match = str.match(new RegExp(`${attr}="([^"]*)"`)); return match ? match[1].replace(/"/g, '') : null; };
-            currentItem = { name: getAttribute('tvg-name', infoLine) || title, logo: getAttribute('tvg-logo', infoLine), raw_title: title };
-        } else if (line.trim() && !line.startsWith('#')) {
-            currentItem.url = line.trim();
-            if (!currentItem.name || !currentItem.url) { currentItem = {}; continue; }
-            const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
-            const isLive = currentItem.url.includes('.ts') || currentItem.url.includes('/live/');
             
+            const getAttribute = (attr, str) => {
+                const match = str.match(new RegExp(`${attr}="([^"]*)"`));
+                return match ? match[1].replace(/"/g, '') : null;
+            };
+
+            currentItem = {
+                name: getAttribute('tvg-name', infoLine) || title,
+                logo: getAttribute('tvg-logo', infoLine),
+                group: getAttribute('group-title', infoLine) || 'Geral',
+                raw_title: title
+            };
+        } else if (currentItem && !line.startsWith('#')) {
+            currentItem.url = line;
+            
+            const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)\s*ª\s*Temporada[ ._-]*Episódio\s*(\d+))/i);
+            const isLive = currentItem.url.includes('.ts') || currentItem.url.includes('/live/');
+
             if (seriesMatch) {
                 const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
-                const seasonNum = seriesMatch[2] || seriesMatch[4];
-                const episodeNum = seriesMatch[3] || seriesMatch[5];
+                const seasonNum = parseInt(seriesMatch[2] || seriesMatch[4], 10);
+                const episodeNum = parseInt(seriesMatch[3] || seriesMatch[5], 10);
+
                 if (!seriesMap.has(seriesName)) {
-                    seriesMap.set(seriesName, { name: seriesName, cover: currentItem.logo, episodes: [] });
+                    seriesMap.set(seriesName, {
+                        name: seriesName,
+                        cover: currentItem.logo,
+                        episodes: []
+                    });
                 }
-                seriesMap.get(seriesName).episodes.push({ title: currentItem.raw_title, url: currentItem.url, season: parseInt(seasonNum, 10), episode: parseInt(episodeNum, 10), logo: currentItem.logo });
+                seriesMap.get(seriesName).episodes.push({
+                    title: currentItem.raw_title,
+                    url: currentItem.url,
+                    season: seasonNum,
+                    episode: episodeNum,
+                    logo: currentItem.logo
+                });
             } else if (isLive) {
                 result.live.push(currentItem);
             } else {
-                result.vod.push({ ...currentItem, stream_icon: currentItem.logo, container_extension: currentItem.url.split('.').pop() });
+                result.vod.push({
+                    ...currentItem,
+                    stream_icon: currentItem.logo,
+                    container_extension: currentItem.url.split('.').pop()
+                });
             }
-            currentItem = {};
+            currentItem = null;
         }
     }
     result.series = Array.from(seriesMap.values());
