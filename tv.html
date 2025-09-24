@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fast - IPTV | TV</title>
+    <title>Fast - IPTV para TV</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -67,9 +67,9 @@
             overflow-y: hidden;
             gap: 20px;
             padding-bottom: 20px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
-        .media-rail::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+        .media-rail::-webkit-scrollbar { display: none; }
         
         .media-card {
             flex: 0 0 320px;
@@ -84,7 +84,6 @@
         .media-card img { width: 100%; height: 100%; object-fit: cover; }
         .media-card-title { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); font-size: 1rem; padding: 10px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 
-        /* ESTADO DE FOCO PARA TV */
         a:focus, button:focus, input:focus, select:focus, .media-card:focus, .episode-item:focus {
             transition: transform 0.2s ease-in-out, outline 0.1s linear;
             outline: 5px solid var(--primary-color);
@@ -93,7 +92,7 @@
             z-index: 10;
         }
         .nav-link a:focus, .login-form input:focus, .login-form button:focus {
-             transform: scale(1.0); /* Sem zoom para itens de formulário/menu */
+             transform: scale(1.0);
         }
         
         .player-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 200; display: none; align-items: center; justify-content: center; }
@@ -141,7 +140,7 @@
 
     <div class="app-wrapper">
         <nav class="navbar-tv">
-            <div class="logo">STREAMFLIX</div>
+            <div class="logo">FAST IPTV</div>
             <ul class="nav-links">
                 <li class="nav-link"><a href="#" data-page="home">Início</a></li>
                 <li class="nav-link"><a href="#" data-page="series">Séries</a></li>
@@ -171,7 +170,7 @@
         </main>
 
         <div id="page-player" class="page player-page">
-            <button class="back-from-player">
+            <button class="back-from-player" tabindex="0">
                 <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg>
             </button>
             <video controls autoplay></video>
@@ -214,7 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchXtreamData(url, user, pass, action) {
         const targetUrl = `${url}/player_api.php?username=${user}&password=${pass}&action=${action}`;
         const response = await fetchAPI(targetUrl);
-        return response.json().catch(() => { throw new Error('Resposta inválida do servidor (não é JSON).')});
+        const textData = await response.text();
+        try {
+            if (textData.trim() === '[]') return [];
+            return JSON.parse(textData);
+        } catch(e) {
+            throw new Error('Resposta inválida do servidor (não é JSON).');
+        }
     }
 
     async function loginWithXtream(url, user, pass) {
@@ -299,22 +304,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
             <div class="media-card" data-stream-url="${streamUrl || ''}" data-series-id="${seriesId || ''}" tabindex="0">
-                <img src="${image || ''}" alt="${title}" onerror="this.style.display='none';">
+                <img src="${image || ''}" alt="${title}" onerror="this.parentElement.style.display='none';">
                 <div class="media-card-title">${title}</div>
             </div>`;
     }
     
+    function parseM3UEpisodes(episodes) {
+        const seasons = {};
+        episodes.forEach(ep => {
+            if (!seasons[ep.season]) seasons[ep.season] = [];
+            seasons[ep.season].push(ep);
+        });
+        return seasons;
+    }
+
     async function renderSeriesDetailsPage(seriesId) {
-        const pageContainer = document.getElementById('page-series-details');
         try {
-            const seriesInfo = activeUser.type === 'xtream'
+            const seriesData = activeUser.type === 'xtream'
                 ? await fetchXtreamData(activeUser.url, activeUser.user, activeUser.pass, `get_series_info&series_id=${seriesId}`)
                 : appData.series.find(s => s.name === seriesId);
 
-            if (!seriesInfo) throw new Error("Série não encontrada");
+            if (!seriesData) throw new Error("Série não encontrada");
             
-            const info = activeUser.type === 'xtream' ? seriesInfo.info : seriesInfo;
-            const episodesBySeason = activeUser.type === 'xtream' ? seriesInfo.episodes : parseM3UEpisodes(seriesInfo.episodes);
+            const info = activeUser.type === 'xtream' ? seriesData.info : seriesData;
+            const episodesBySeason = activeUser.type === 'xtream' ? seriesData.episodes : parseM3UEpisodes(seriesData.episodes);
             
             document.getElementById('series-details-backdrop').style.backgroundImage = `url('${info.backdrop_path?.[0] || info.cover || ''}')`;
             document.getElementById('series-details-title').textContent = info.name;
@@ -322,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const seasonSelect = document.getElementById('season-select');
             seasonSelect.innerHTML = '';
-            Object.keys(episodesBySeason).forEach(seasonNum => {
+            Object.keys(episodesBySeason).sort((a, b) => a - b).forEach(seasonNum => {
                 const option = document.createElement('option');
                 option.value = seasonNum;
                 option.textContent = `Temporada ${seasonNum}`;
@@ -332,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const renderEpisodes = (seasonNum) => {
                 const episodeList = document.getElementById('episode-list');
                 episodeList.innerHTML = '';
-                episodesBySeason[seasonNum].forEach(ep => {
+                episodesBySeason[seasonNum].sort((a, b) => (a.episode_num || a.episode) - (b.episode_num || b.episode)).forEach(ep => {
                     const epUrl = activeUser.type === 'xtream' 
                         ? `${activeUser.url}/series/${activeUser.user}/${activeUser.pass}/${ep.id}.${ep.container_extension}` 
                         : ep.url;
@@ -346,8 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div>
                             <strong>${ep.episode_num || ep.episode}. ${ep.title}</strong>
                             <p>${ep.info?.plot || ''}</p>
-                        </div>
-                    `;
+                        </div>`;
                     episodeList.appendChild(item);
                 });
             };
@@ -359,16 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showPage('series-details');
         } catch (error) {
             console.error('Error fetching series details:', error);
+            showPage(lastPageId); // Volta para a página anterior em caso de erro
         }
-    }
-
-    function parseM3UEpisodes(episodes) {
-        const seasons = {};
-        episodes.forEach(ep => {
-            if (!seasons[ep.season]) seasons[ep.season] = [];
-            seasons[ep.season].push(ep);
-        });
-        return seasons;
     }
 
     function logout() {
@@ -381,9 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (session) {
             const userData = JSON.parse(session);
             if (userData.type === 'xtream') {
-                loginWithXtream(userData.url, userData.user, userData.pass);
+                await loginWithXtream(userData.url, userData.user, userData.pass);
             } else if (userData.type === 'm3u') {
-                loginWithM3U(userData.url);
+                await loginWithM3U(userData.url);
             }
         }
     }
@@ -398,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         setTimeout(() => {
-            let firstFocusable = document.querySelector('.page.active a, .page.active .media-card, .page.active select, .page.active .episode-item');
+            let firstFocusable = document.querySelector('.page.active .media-card, .page.active select, .page.active .episode-item, .page.active .back-from-player');
             if (firstFocusable) {
                 firstFocusable.focus();
             } else {
@@ -425,11 +429,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     document.addEventListener('keydown', (e) => {
-        if (appWrapper.style.display !== 'block' || document.getElementById('page-player').classList.contains('active')) return;
+        if (appWrapper.style.display !== 'block' || loginContainer.style.display === 'flex') return;
+
+        if (e.key === 'Backspace' && !document.getElementById('page-player').classList.contains('active')) {
+            e.preventDefault();
+            logout();
+            return;
+        }
 
         const currentElement = document.activeElement;
         const focusableElements = Array.from(
-            document.querySelectorAll('.nav-link a, .media-card, .episode-item, .season-selector select')
+            document.querySelectorAll('a[data-page], .media-card, .episode-item, .season-selector select, .back-from-player')
         ).filter(el => el.offsetParent !== null);
 
         if (focusableElements.length === 0) return;
@@ -438,18 +448,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let nextElement = null;
         
-        // Esta lógica de navegação é complexa. Bibliotecas como 'spatial-navigation-js' são melhores.
-        // Aqui está uma versão simplificada:
+        // Lógica de navegação espacial é complexa, esta é uma simplificação.
+        // O ideal é usar uma biblioteca como 'spatial-navigation-js'.
         switch (e.key) {
-            case 'ArrowRight': nextElement = focusableElements[currentIndex + 1]; break;
-            case 'ArrowLeft': nextElement = focusableElements[currentIndex - 1]; break;
-            case 'ArrowDown':
-                // Tenta encontrar o próximo item na mesma coluna vertical
+            case 'ArrowRight':
+                if (currentIndex < focusableElements.length - 1) nextElement = focusableElements[currentIndex + 1];
                 break;
-            case 'ArrowUp':
-                // Tenta encontrar o item acima
+            case 'ArrowLeft':
+                if (currentIndex > 0) nextElement = focusableElements[currentIndex - 1];
                 break;
-            case 'Enter': currentElement.click(); break;
+            case 'Enter':
+                if(currentElement) currentElement.click();
+                break;
         }
         
         if (nextElement) {
@@ -459,10 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            showPage(link.dataset.page);
-        });
+        link.addEventListener('click', (e) => { e.preventDefault(); showPage(link.dataset.page); });
     });
 
     mainContent.addEventListener('click', (event) => {
@@ -499,19 +506,26 @@ function parseM3U(text) {
             const commaIndex = line.lastIndexOf(',');
             const title = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : '';
             const infoLine = commaIndex !== -1 ? line.substring(0, commaIndex) : line;
-            const getAttribute = (attr, str) => { const match = str.match(new RegExp(`${attr}="([^"]*)"`)); return match ? match[1] : null; };
-            currentItem = { name: getAttribute('tvg-name', infoLine) || title, logo: getAttribute('tvg-logo', infoLine) };
+            const getAttribute = (attr, str) => { const match = str.match(new RegExp(`${attr}="([^"]*)"`)); return match ? match[1].replace(/"/g, '') : null; };
+            currentItem = { name: getAttribute('tvg-name', infoLine) || title, logo: getAttribute('tvg-logo', infoLine), raw_title: title };
         } else if (line.trim() && !line.startsWith('#')) {
             currentItem.url = line.trim();
-            const seriesMatch = currentItem.name.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+))/i);
+            if (!currentItem.name || !currentItem.url) { currentItem = {}; continue; }
+            const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
+            const isLive = currentItem.url.includes('.ts') || currentItem.url.includes('/live/');
+            
             if (seriesMatch) {
-                const seriesName = seriesMatch[1].trim();
-                if (!seriesMap.has(seriesName)) seriesMap.set(seriesName, { name: seriesName, cover: currentItem.logo, episodes: [] });
-                seriesMap.get(seriesName).episodes.push({ title: currentItem.name, url: currentItem.url, season: parseInt(seriesMatch[2]), episode: parseInt(seriesMatch[3]), logo: currentItem.logo });
-            } else if (currentItem.url.includes('.ts') || currentItem.url.includes('/live/')) {
+                const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
+                const seasonNum = seriesMatch[2] || seriesMatch[4];
+                const episodeNum = seriesMatch[3] || seriesMatch[5];
+                if (!seriesMap.has(seriesName)) {
+                    seriesMap.set(seriesName, { name: seriesName, cover: currentItem.logo, episodes: [] });
+                }
+                seriesMap.get(seriesName).episodes.push({ title: currentItem.raw_title, url: currentItem.url, season: parseInt(seasonNum, 10), episode: parseInt(episodeNum, 10), logo: currentItem.logo });
+            } else if (isLive) {
                 result.live.push(currentItem);
             } else {
-                result.vod.push({ ...currentItem, stream_icon: currentItem.logo });
+                result.vod.push({ ...currentItem, stream_icon: currentItem.logo, container_extension: currentItem.url.split('.').pop() });
             }
             currentItem = {};
         }
