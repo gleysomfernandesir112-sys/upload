@@ -266,6 +266,9 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // Expected user ID for validation
+        const EXPECTED_USER_ID = 'yA9FYXsW8uU2MI2SPPlsDj8r69t2';
+
         // Set session persistence to LOCAL
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
             .catch(error => console.error("Error setting session persistence:", error));
@@ -298,12 +301,33 @@
             appWrapper.classList.remove('active');
             loginLoader.style.display = 'none';
 
+            // Clear Firebase-related storage to prevent stale sessions
+            try {
+                localStorage.removeItem('firebase:authUser:AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE:[DEFAULT]');
+                sessionStorage.clear();
+                console.log('Cleared Firebase-related storage');
+            } catch (error) {
+                console.error('Error clearing storage:', error);
+            }
+
             // Debounce auth state changes
             function handleAuthState(user) {
                 clearTimeout(authStateTimeout);
                 authStateTimeout = setTimeout(() => {
                     console.log('Processed auth state:', user ? `User ${user.uid} logged in` : 'No user logged in');
-                    if (user && user.uid !== lastAuthState) {
+                    if (user && user.uid !== EXPECTED_USER_ID) {
+                        console.warn(`Unexpected user detected: ${user.uid}. Signing out.`);
+                        auth.signOut().then(() => {
+                            console.log('Signed out unexpected user');
+                            loginContainer.classList.add('active');
+                            appWrapper.classList.remove('active');
+                            loginLoader.style.display = 'none';
+                        }).catch(error => {
+                            console.error('Error signing out unexpected user:', error);
+                        });
+                        return;
+                    }
+                    if (user && user.uid === EXPECTED_USER_ID && user.uid !== lastAuthState) {
                         lastAuthState = user.uid;
                         loginContainer.classList.remove('active');
                         appWrapper.classList.add('active');
@@ -317,13 +341,20 @@
                         appData = { vodStreams: [], series: [], liveStreams: [] };
                         loginLoader.style.display = 'none';
                     }
-                }, 500); // Debounce for 500ms
+                }, 1000); // Debounce for 1000ms
             }
 
-            auth.onAuthStateChanged(user => {
-                console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
-                handleAuthState(user);
-            });
+            try {
+                auth.onAuthStateChanged(user => {
+                    console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
+                    handleAuthState(user);
+                });
+            } catch (error) {
+                console.error('Error in auth state listener:', error);
+                loginContainer.classList.add('active');
+                appWrapper.classList.remove('active');
+                loginLoader.style.display = 'none';
+            }
 
             loginForm.addEventListener('submit', e => {
                 e.preventDefault();
@@ -334,15 +365,21 @@
                 loginLoader.style.display = 'block';
                 loginError.textContent = '';
 
-                auth.signInWithEmailAndPassword(email, password)
-                    .then(() => {
-                        loginLoader.style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('Login error:', error);
-                        loginError.textContent = "Usuário ou senha inválidos.";
-                        loginLoader.style.display = 'none';
-                    });
+                try {
+                    auth.signInWithEmailAndPassword(email, password)
+                        .then(() => {
+                            loginLoader.style.display = 'none';
+                        })
+                        .catch(error => {
+                            console.error('Login error:', error);
+                            loginError.textContent = "Usuário ou senha inválidos.";
+                            loginLoader.style.display = 'none';
+                        });
+                } catch (error) {
+                    console.error('Error during login attempt:', error);
+                    loginError.textContent = "Erro ao tentar login. Tente novamente.";
+                    loginLoader.style.display = 'none';
+                }
             });
 
             // --- Device Selection Logic ---
@@ -455,19 +492,22 @@
                 } catch (error) {
                     console.error("Erro ao carregar conteúdo:", error);
                     loginError.textContent = `Erro: ${error.message}. Tente novamente ou verifique as configurações.`;
-                } finally {
                     loginLoader.style.display = 'none';
                 }
             }
 
             const logoutButtons = document.querySelectorAll('#logout-btn, #mobile-logout-btn');
             logoutButtons.forEach(btn => btn.addEventListener('click', () => {
-                auth.signOut().then(() => {
-                    console.log('User signed out');
-                    loginContainer.classList.add('active');
-                    appWrapper.classList.remove('active');
-                    loginLoader.style.display = 'none';
-                });
+                try {
+                    auth.signOut().then(() => {
+                        console.log('User signed out');
+                        loginContainer.classList.add('active');
+                        appWrapper.classList.remove('active');
+                        loginLoader.style.display = 'none';
+                    });
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                }
             }));
 
             function renderAllPages() {
@@ -690,14 +730,18 @@
             });
 
             // Force sign-out of any stale sessions on load
-            auth.signOut().then(() => {
-                console.log('Cleared any stale sessions');
-                loginContainer.classList.add('active');
-                appWrapper.classList.remove('active');
-                loginLoader.style.display = 'none';
-            }).catch(error => {
-                console.error('Error clearing stale sessions:', error);
-            });
+            try {
+                auth.signOut().then(() => {
+                    console.log('Cleared any stale sessions');
+                    loginContainer.classList.add('active');
+                    appWrapper.classList.remove('active');
+                    loginLoader.style.display = 'none';
+                }).catch(error => {
+                    console.error('Error clearing stale sessions:', error);
+                });
+            } catch (error) {
+                console.error('Error during initial sign-out:', error);
+            }
 
             initializeDeviceMode();
         });
