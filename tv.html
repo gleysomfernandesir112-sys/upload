@@ -163,8 +163,8 @@
         <div class="login-box">
             <h1>Entrar</h1>
             <form id="firebase-login-form" class="login-form">
-                <input type="text" id="login-username" placeholder="Nome de Usuário" required>
-                <input type="password" id="login-password" placeholder="Senha" required>
+                <input type="text" id="login-username" placeholder="Nome de Usuário" required autocomplete="username">
+                <input type="password" id="login-password" placeholder="Senha" required autocomplete="current-password">
                 <button type="submit">Entrar</button>
             </form>
             <div id="login-error"></div>
@@ -283,13 +283,29 @@
             let hls = null;
             let currentUserData = null;
 
+            // --- LÓGICA DE SELEÇÃO DE DISPOSITIVO ---
+            function saveDevicePreference(device) { localStorage.setItem('device_preference', device); }
+            function getDevicePreference() { return localStorage.getItem('device_preference'); }
+            function applyDeviceMode(device) {
+                document.body.classList.remove('tv-mode');
+                if (device === 'tv') document.body.classList.add('tv-mode');
+                document.querySelectorAll('.device-option').forEach(opt => opt.classList.toggle('active', opt.dataset.device === device));
+                saveDevicePreference(device);
+            }
+            function autoEnableTvMode() { if (!getDevicePreference()) applyDeviceMode('tv'); }
+            document.addEventListener('click', e => { if (e.target.closest('.device-option')) applyDeviceMode(e.target.closest('.device-option').dataset.device); });
+            function initializeDeviceMode() {
+                const preferredDevice = getDevicePreference();
+                if (preferredDevice) applyDeviceMode(preferredDevice);
+                else applyDeviceMode(window.matchMedia("(max-width: 768px)").matches ? 'mobile' : 'computer');
+            }
+            window.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) autoEnableTvMode(); });
+
             auth.onAuthStateChanged(user => {
                 if (user) {
                     loginContainer.classList.remove('active');
                     appWrapper.classList.add('active');
-                    if (!currentUserData) {
-                        loadContentForUser(user);
-                    }
+                    if (!currentUserData) loadContentForUser(user);
                 } else {
                     loginContainer.classList.add('active');
                     appWrapper.classList.remove('active');
@@ -298,7 +314,7 @@
                 }
             });
 
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', e => {
                 e.preventDefault();
                 const username = document.getElementById('login-username').value.trim();
                 const password = document.getElementById('login-password').value;
@@ -309,13 +325,24 @@
 
                 auth.signInWithEmailAndPassword(email, password)
                     .catch(error => {
-                        console.error("Erro de login:", error);
                         loginError.textContent = "Usuário ou senha inválidos.";
                         loginLoader.style.display = 'none';
                     });
             });
 
+            // --- FUNÇÃO OTIMIZADA para adicionar proxy se necessário ---
+            function proxifyUrl(url) {
+                const PROXY_PREFIX = 'https://api.allorigins.win/raw?url=';
+                // Se a URL já é um proxy, retorna ela mesma. Senão, adiciona o prefixo.
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                     if(url.includes('?url=')) return url; // já é um proxy
+                     return PROXY_PREFIX + encodeURIComponent(url);
+                }
+                return url; // Retorna a URL original se não for um formato http válido
+            }
+
             async function loadContentForUser(user) {
+                loginLoader.style.display = 'block';
                 try {
                     const userRef = db.ref('fast-iptv/' + user.uid);
                     const snapshot = await userRef.once('value');
@@ -324,9 +351,11 @@
                     if (!currentUserData) throw new Error("Dados de configuração não encontrados para este usuário.");
                     
                     const { xtreamUrl, xtreamUser, xtreamPass, m3uUrl } = currentUserData;
+                    
+                    const proxiedM3uUrl = proxifyUrl(m3uUrl);
 
                     const [liveStreamsResult, vodStreamsResult, seriesResult] = await Promise.all([
-                        fetch(m3uUrl).then(res => res.text()).then(text => parseM3U(text).live),
+                        fetch(proxiedM3uUrl).then(res => { if(!res.ok) throw new Error(`Falha ao buscar M3U: ${res.status}`); return res.text() }).then(text => parseM3U(text).live),
                         fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, 'get_vod_streams'),
                         fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, 'get_series')
                     ]);
@@ -341,8 +370,10 @@
                     showPage('home');
                 } catch (error) {
                     console.error("Falha ao carregar conteúdo:", error);
-                    alert(`Erro: ${error.message}`);
+                    loginError.textContent = `Erro ao carregar: ${error.message}`;
                     auth.signOut();
+                } finally {
+                    loginLoader.style.display = 'none';
                 }
             }
             
@@ -408,13 +439,20 @@
                 if (card.dataset.seriesId) {
                      renderSeriesDetailsPage(card.dataset.seriesId);
                 } else if (card.dataset.streamUrl) {
-                    openPlayer(card.dataset.streamUrl);
+                    const url = card.dataset.streamUrl;
+                    // O player precisa da URL com proxy
+                    openPlayer(proxifyUrl(url));
                 }
             });
 
             async function renderSeriesDetailsPage(seriesId) {
                 const { xtreamUrl, xtreamUser, xtreamPass } = currentUserData;
                 const seriesInfo = await fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, `get_series_info&series_id=${seriesId}`);
+                
+                if(!seriesInfo || !seriesInfo.info) {
+                    alert("Não foi possível carregar os detalhes da série.");
+                    return;
+                }
                 
                 document.getElementById('series-details-backdrop').style.backgroundImage = `url('${seriesInfo.info.backdrop_path?.[0] || ''}')`;
                 document.getElementById('series-details-title').textContent = seriesInfo.info.name;
@@ -426,9 +464,7 @@
                 episodeList.innerHTML = '';
 
                 if (seriesInfo.episodes) {
-                    Object.keys(seriesInfo.episodes).forEach(seasonNum => {
-                        seasonSelect.add(new Option(`Temporada ${seasonNum}`, seasonNum));
-                    });
+                    Object.keys(seriesInfo.episodes).forEach(seasonNum => seasonSelect.add(new Option(`Temporada ${seasonNum}`, seasonNum)));
                     const renderEpisodes = (seasonNum) => {
                         episodeList.innerHTML = '';
                         seriesInfo.episodes[seasonNum].forEach(ep => {
@@ -449,17 +485,13 @@
                 if (!streamUrl || streamUrl === 'null') return;
                 if (hls) { hls.destroy(); hls = null; }
 
-                const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
-                if (isHls && Hls.isSupported()) {
+                if (Hls.isSupported()) {
                     hls = new Hls();
                     hls.loadSource(streamUrl);
                     hls.attachMedia(videoPlayer);
-                } else {
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                     videoPlayer.src = streamUrl;
                 }
-                videoPlayer.load();
-                showPage('player');
-                videoPlayer.play();
             }
 
             backFromPlayerBtn.addEventListener('click', () => {
@@ -469,29 +501,31 @@
                 if (hls) { hls.destroy(); hls = null; }
             });
             
-            async function fetchXtreamData(url, user, pass, action) {
-                const targetUrl = `${url}/player_api.php?username=${user}&password=${pass}&action=${action}`;
+            async function fetchXtreamData(baseUrl, user, pass, action) {
+                const finalUrl = `${baseUrl}/player_api.php?username=${user}&password=${pass}&action=${action}`;
+                const proxiedUrl = proxifyUrl(finalUrl);
                 try {
-                    const response = await fetch(targetUrl);
-                    if (!response.ok) return null;
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) throw new Error(`Erro de rede na API Xtream: ${response.status}`);
                     return await response.json();
-                } catch(e) { return null; }
+                } catch (e) {
+                    throw new Error(`Falha ao buscar dados de ${action}.`);
+                }
             }
             
             function parseM3U(text) {
                 const lines = text.split('\n');
-                const result = { live: [], vod: [], series: [] };
+                const result = { live: [] };
                 let currentItem = {};
                 for (const line of lines) {
                     if (line.startsWith('#EXTINF:')) {
                         const commaIndex = line.lastIndexOf(',');
                         const title = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : '';
-                        const infoLine = commaIndex !== -1 ? line.substring(0, commaIndex) : line;
                         const getAttribute = (attr, str) => {
                             const match = str.match(new RegExp(`${attr}="([^"]*)"`));
                             return match ? match[1] : null;
                         };
-                        currentItem = { name: getAttribute('tvg-name', infoLine) || title, logo: getAttribute('tvg-logo', infoLine) };
+                        currentItem = { name: getAttribute('tvg-name', line) || title, logo: getAttribute('tvg-logo', line) };
                     } else if (line.trim() && !line.startsWith('#')) {
                         currentItem.url = line.trim();
                         result.live.push(currentItem);
@@ -510,14 +544,10 @@
 
             [...desktopLinks, ...mobileLinks].forEach(link => {
                 const pageId = link.dataset.page;
-                if(pageId) {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        showPage(pageId);
-                    });
-                }
+                if(pageId) link.addEventListener('click', e => { e.preventDefault(); showPage(pageId); });
             });
-
+            
+            initializeDeviceMode();
         });
     </script>
 </body>
