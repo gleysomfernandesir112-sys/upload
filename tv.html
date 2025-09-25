@@ -836,7 +836,7 @@
                         }
 
                         const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
-                        const isLive = url.includes('.ts') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
+                        const isLive = url.includes('') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
                         
                         if (seriesMatch) {
                             const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
