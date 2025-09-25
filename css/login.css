@@ -1,0 +1,140 @@
+:root {
+    --primary-color: #E50914;
+    --background-color: #141414;
+    --text-color: #ffffff;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://image.tmdb.org/t/p/original/VlHt2blBkncfAqPnuTtraG2flp.jpg') no-repeat center center/cover;
+    overflow: hidden;
+}
+
+.login-wrapper {
+    background-color: rgba(20, 20, 20, 0.75);
+    backdrop-filter: blur(15px) saturate(120%);
+    -webkit-backdrop-filter: blur(15px) saturate(120%);
+    padding: 3rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    max-width: 400px;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.login-wrapper h1 {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    font-weight: 500;
+    font-size: 2rem;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-container input {
+    background-color: rgba(70, 70, 70, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    padding: 1rem;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-container input:focus {
+    outline: none;
+    border-color: rgba(229, 9, 20, 0.8);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25);
+}
+
+.form-container button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.form-container button:hover {
+    background-color: #f40612;
+}
+
+.form-container button:active {
+    transform: scale(0.98);
+}
+
+.google-btn {
+    background-color: #ffffff;
+    color: #222;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 500;
+}
+
+.google-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.separator {
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #8c8c8c;
+    font-size: 0.9rem;
+}
+
+.toggle-form {
+    background: none;
+    border: none;
+    color: #b3b3b3;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    transition: color 0.3s;
+}
+
+.toggle-form:hover {
+    color: var(--text-color);
+}
+
+#message {
+    color: #e87c03;
+    margin-top: 1.5rem;
+    text-align: center;
+    min-height: 1.2em;
+    font-weight: 500;
+}
+
+.loader {
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top: 4px solid var(--primary-color);
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto 0;
+    display: none;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

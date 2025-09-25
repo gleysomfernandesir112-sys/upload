@@ -1,0 +1,12 @@
+
+{
+  "rules": {
+    "app_users": {
+      "$uid": {
+        // Permite que um usuário leia e escreva apenas em seu próprio nó de dados
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}

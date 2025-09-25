@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Fast IPTV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/login.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="login-wrapper">
+        <!-- Formulário de Login -->
+        <div id="login-view">
+            <h1>Entrar</h1>
+            <div class="form-container">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Palavra-passe" required>
+                <button id="login-button">Entrar</button>
+                <div class="separator">ou</div>
+                <button id="google-signin-button" class="google-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        <path d="M1 1h22v22H1z" fill="none"/>
+                    </svg>
+                    <span>Entrar com Google</span>
+                </button>
+                <button id="show-qr-view" class="toggle-form">Entrar com QR Code</button>
+                <button id="show-register-view" class="toggle-form">Não tem uma conta? Cadastre-se</button>
+            </div>
+        </div>
+
+        <!-- Formulário de Cadastro -->
+        <div id="register-view" style="display: none;">
+            <h1>Cadastrar</h1>
+            <div class="form-container">
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Palavra-passe (mínimo 6 caracteres)" required>
+                <button id="register-button">Cadastrar</button>
+                <button id="show-login-view-from-register" class="toggle-form">Já tem uma conta? Entre</button>
+            </div>
+        </div>
+
+        <!-- Tela do QR Code -->
+        <div id="qr-view" style="display: none; text-align: center;">
+            <h1>Login por QR Code</h1>
+            <div id="qrcode" style="margin: 0 auto; width: 256px; height: 256px; background: white; padding: 16px; border-radius: 8px;"></div>
+            <p id="qr-message" style="margin-top: 1rem; color: #ccc;">Aponte a câmera do seu celular para escanear o código.</p>
+            <button id="show-login-view-from-qr" class="toggle-form">Voltar para o login</button>
+        </div>
+        
+        <div id="message"></div>
+        <div id="loader" class="loader"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <!-- Scripts da Aplicação -->
+    <script src="FirebaseAPI/firebase-config.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/qr-login.js"></script>
+    
+    <script>
+        // Lógica da página de login
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginView = document.getElementById('login-view');
+            const registerView = document.getElementById('register-view');
+            const qrView = document.getElementById('qr-view');
+
+            const toRegisterBtn = document.getElementById('show-register-view');
+            const toLoginBtnFromRegister = document.getElementById('show-login-view-from-register');
+            const toQrBtn = document.getElementById('show-qr-view');
+            const toLoginBtnFromQr = document.getElementById('show-login-view-from-qr');
+
+            const loginBtn = document.getElementById('login-button');
+            const registerBtn = document.getElementById('register-button');
+            const googleSignInBtn = document.getElementById('google-signin-button');
+
+            const loginEmail = document.getElementById('login-email');
+            const loginPassword = document.getElementById('login-password');
+            const registerEmail = document.getElementById('register-email');
+            const registerPassword = document.getElementById('register-password');
+
+            // Inicializa Firebase
+            initializeApp();
+
+            // Funções para trocar de tela
+            function showView(viewToShow) {
+                [loginView, registerView, qrView].forEach(view => view.style.display = 'none');
+                viewToShow.style.display = 'block';
+            }
+
+            toRegisterBtn.addEventListener('click', () => showView(registerView));
+            toLoginBtnFromRegister.addEventListener('click', () => showView(loginView));
+            toLoginBtnFromQr.addEventListener('click', () => {
+                cancelQRCode(); // Cancela o listener do QR code ao sair da tela
+                showView(loginView);
+            });
+            toQrBtn.addEventListener('click', () => {
+                showView(qrView);
+                generateAndListenForQRCode(); // Inicia a lógica do QR Code
+            });
+
+            // Ações dos botões
+            loginBtn.addEventListener('click', () => {
+                signInWithEmail(loginEmail.value, loginPassword.value);
+            });
+
+            registerBtn.addEventListener('click', () => {
+                createUserWithEmail(registerEmail.value, registerPassword.value);
+            });
+
+            googleSignInBtn.addEventListener('click', signInWithGoogle);
+        });
+    </script>
+</body>
+</html>
