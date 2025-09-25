@@ -461,7 +461,7 @@
                 let seriesId = '';
                 
                 if (activeUser.type === 'xtream') {
-                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
+                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
                     if (pageId === 'series') {
@@ -686,7 +686,7 @@
                     hls = null;
                 }
 
-                const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.ts');
+                const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('');
 
                 if (isHls && Hls.isSupported()) {
                     hls = new Hls();
@@ -786,7 +786,7 @@
                         }
 
                         const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
-                        const isLive = url.includes('.ts') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
+                        const isLive = url.includes('') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
                         
                         if(seriesMatch) {
                            const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
@@ -832,5 +832,6 @@
     </script>
 </body>
 </html>
+
 
 
