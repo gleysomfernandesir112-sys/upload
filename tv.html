@@ -632,18 +632,23 @@
                     hls = null;
                 }
 
-                const extensions = ['.m3u8', '.ts'];
+                // Lista de extensões a testar (inclui a URL sem extensão como primeira tentativa)
+                const extensions = ['', '.m3u8', '.ts'];
                 let streamUrl = '';
 
+                // Função para testar se a URL é válida
                 async function testStreamUrl(url) {
                     try {
-                        const response = await fetch(url, { method: 'HEAD' });
-                        return response.ok;
+                        const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                        // Verifica se a resposta é válida e se o tipo de conteúdo é compatível com vídeo
+                        const contentType = response.headers.get('content-type') || '';
+                        return response.ok && (contentType.includes('video') || contentType.includes('application/vnd.apple.mpegurl') || contentType.includes('application/octet-stream'));
                     } catch {
                         return false;
                     }
                 }
 
+                // Tenta encontrar a URL válida
                 for (const ext of extensions) {
                     const testUrl = `${streamBase}${ext}`;
                     console.log('Testando URL:', testUrl);
@@ -654,14 +659,16 @@
                 }
 
                 if (!streamUrl) {
-                    console.error('Nenhuma URL válida encontrada para o stream.');
-                    alert('Não foi possível carregar o canal. Verifique a conexão ou as credenciais.');
+                    console.error('Nenhuma URL válida encontrada para o stream:', streamBase);
+                    alert('Não foi possível carregar o canal. Verifique a conexão, as credenciais ou o formato do stream.');
                     return;
                 }
 
                 console.log('Reproduzindo stream:', streamUrl);
 
-                const isHls = streamUrl.includes('.m3u8');
+                // Determina se é HLS com base na extensão ou no tipo de conteúdo
+                const isHls = streamUrl.includes('.m3u8') || (await fetch(streamUrl, { method: 'HEAD' })
+                    .then(res => res.headers.get('content-type')?.includes('application/vnd.apple.mpegurl')));
 
                 if (isHls && Hls.isSupported()) {
                     hls = new Hls();
@@ -670,7 +677,7 @@
                     hls.on(Hls.Events.ERROR, (event, data) => {
                         console.error('Erro HLS:', data);
                         if (data.fatal) {
-                            alert('Erro ao carregar o stream HLS.');
+                            alert('Erro ao carregar o stream HLS. Tente outro canal ou verifique a conexão.');
                             hls.destroy();
                             hls = null;
                         }
@@ -683,7 +690,7 @@
                 showPage('player');
                 videoPlayer.play().catch(error => {
                     console.error('Erro ao reproduzir vídeo:', error);
-                    alert('Erro ao iniciar a reprodução. O formato pode não ser suportado.');
+                    alert('Erro ao iniciar a reprodução. O formato pode não ser suportado pelo navegador.');
                 });
             }
 
@@ -836,7 +843,7 @@
                         }
 
                         const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
-                        const isLive = url.includes('') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
+                        const isLive = url.includes('.ts') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
                         
                         if (seriesMatch) {
                             const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
