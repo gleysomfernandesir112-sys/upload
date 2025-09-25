@@ -11,6 +11,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Firebase SDK Compatibility Mode -->
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <style>
         :root {
             --primary-color: #E50914;
@@ -242,38 +246,65 @@
             </nav>
         </div>
     </div>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <script>
-        // Prevent multiple Firebase initializations
-        if (!firebase.apps.length) {
-            const firebaseConfig = {
-                apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
-                authDomain: "fasthub-9a206.firebaseapp.com",
-                databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
-                projectId: "fasthub-9a206",
-                storageBucket: "fasthub-9a206.appspot.com",
-                messagingSenderId: "685686875831",
-                appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
-            };
-            firebase.initializeApp(firebaseConfig);
+        // Wait for Firebase to load
+        function waitForFirebase(maxAttempts = 10, delay = 500) {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const checkFirebase = () => {
+                    if (typeof firebase !== 'undefined' && firebase.app) {
+                        console.log('Firebase SDK loaded successfully');
+                        resolve(firebase);
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase SDK failed to load after maximum attempts'));
+                    } else {
+                        attempts++;
+                        console.log(`Waiting for Firebase SDK (attempt ${attempts}/${maxAttempts})`);
+                        setTimeout(checkFirebase, delay);
+                    }
+                };
+                checkFirebase();
+            });
         }
 
-        const auth = firebase.auth();
-        const db = firebase.database();
+        // Initialize app after Firebase is loaded
+        window.addEventListener('DOMContentLoaded', async () => {
+            let auth, db;
+            try {
+                const firebaseInstance = await waitForFirebase();
+                if (!firebaseInstance.apps.length) {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
+                        authDomain: "fasthub-9a206.firebaseapp.com",
+                        databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
+                        projectId: "fasthub-9a206",
+                        storageBucket: "fasthub-9a206.appspot.com",
+                        messagingSenderId: "685686875831",
+                        appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
+                    };
+                    firebaseInstance.initializeApp(firebaseConfig);
+                }
+                auth = firebaseInstance.auth();
+                db = firebaseInstance.database();
+                console.log('Firebase initialized successfully');
+            } catch (error) {
+                console.error('Error loading Firebase:', error);
+                document.getElementById('login-error').textContent = 'Erro ao carregar o sistema. Tente novamente mais tarde.';
+                return;
+            }
 
-        // Expected user ID for validation
-        const EXPECTED_USER_ID = 'yA9FYXsW8uU2MI2SPPlsDj8r69t2';
+            // Expected user ID for validation
+            const EXPECTED_USER_ID = 'yA9FYXsW8uU2MI2SPPlsDj8r69t2';
 
-        // Set session persistence to LOCAL
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .catch(error => console.error("Error setting session persistence:", error));
+            // Set session persistence to LOCAL
+            try {
+                await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+                console.log('Session persistence set to LOCAL');
+            } catch (error) {
+                console.error('Error setting session persistence:', error);
+            }
 
-        document.addEventListener('DOMContentLoaded', () => {
             const loginContainer = document.getElementById('login-container');
             const appWrapper = document.querySelector('.app-wrapper');
             const loginForm = document.getElementById('firebase-login-form');
@@ -301,62 +332,98 @@
             appWrapper.classList.remove('active');
             loginLoader.style.display = 'none';
 
-            // Clear Firebase-related storage to prevent stale sessions
+            // Clear Firebase-related storage and cookies
             try {
-                localStorage.removeItem('firebase:authUser:AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE:[DEFAULT]');
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('firebase:')) localStorage.removeItem(key);
+                });
                 sessionStorage.clear();
-                console.log('Cleared Firebase-related storage');
+                document.cookie.split(";").forEach(cookie => {
+                    const name = cookie.split("=")[0].trim();
+                    if (name.includes('firebase')) {
+                        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                    }
+                });
+                console.log('Cleared Firebase-related storage and cookies');
             } catch (error) {
                 console.error('Error clearing storage:', error);
+            }
+
+            // Retry logic for auth state
+            async function handleAuthStateWithRetry(user, retries = 3, delay = 1000) {
+                for (let attempt = 1; attempt <= retries; attempt++) {
+                    try {
+                        if (user) {
+                            await user.getIdToken(true);
+                            console.log(`Token refreshed for user ${user.uid}`);
+                            return user;
+                        }
+                        return user;
+                    } catch (error) {
+                        console.warn(`Auth state attempt ${attempt} failed:`, error);
+                        if (attempt === retries) throw error;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
             }
 
             // Debounce auth state changes
             function handleAuthState(user) {
                 clearTimeout(authStateTimeout);
-                authStateTimeout = setTimeout(() => {
-                    console.log('Processed auth state:', user ? `User ${user.uid} logged in` : 'No user logged in');
-                    if (user && user.uid !== EXPECTED_USER_ID) {
-                        console.warn(`Unexpected user detected: ${user.uid}. Signing out.`);
-                        auth.signOut().then(() => {
+                authStateTimeout = setTimeout(async () => {
+                    try {
+                        const validatedUser = await handleAuthStateWithRetry(user);
+                        console.log('Processed auth state:', validatedUser ? `User ${validatedUser.uid} logged in` : 'No user logged in');
+                        if (validatedUser && validatedUser.uid !== EXPECTED_USER_ID) {
+                            console.warn(`Unexpected user detected: ${validatedUser.uid}. Signing out.`);
+                            await auth.signOut();
                             console.log('Signed out unexpected user');
                             loginContainer.classList.add('active');
                             appWrapper.classList.remove('active');
                             loginLoader.style.display = 'none';
-                        }).catch(error => {
-                            console.error('Error signing out unexpected user:', error);
-                        });
-                        return;
-                    }
-                    if (user && user.uid === EXPECTED_USER_ID && user.uid !== lastAuthState) {
-                        lastAuthState = user.uid;
-                        loginContainer.classList.remove('active');
-                        appWrapper.classList.add('active');
-                        loginLoader.style.display = 'none';
-                        if (!currentUserData) loadContentForUser(user);
-                    } else if (!user && lastAuthState !== null) {
-                        lastAuthState = null;
+                            return;
+                        }
+                        if (validatedUser && validatedUser.uid === EXPECTED_USER_ID && validatedUser.uid !== lastAuthState) {
+                            lastAuthState = validatedUser.uid;
+                            loginContainer.classList.remove('active');
+                            appWrapper.classList.add('active');
+                            loginLoader.style.display = 'none';
+                            if (!currentUserData) await loadContentForUser(validatedUser);
+                        } else if (!validatedUser && lastAuthState !== null) {
+                            lastAuthState = null;
+                            loginContainer.classList.add('active');
+                            appWrapper.classList.remove('active');
+                            currentUserData = null;
+                            appData = { vodStreams: [], series: [], liveStreams: [] };
+                            loginLoader.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Error processing auth state:', error);
                         loginContainer.classList.add('active');
                         appWrapper.classList.remove('active');
-                        currentUserData = null;
-                        appData = { vodStreams: [], series: [], liveStreams: [] };
                         loginLoader.style.display = 'none';
                     }
-                }, 1000); // Debounce for 1000ms
+                }, 1500); // Increased debounce timeout
             }
 
             try {
                 auth.onAuthStateChanged(user => {
                     console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
                     handleAuthState(user);
+                }, error => {
+                    console.error('Auth state listener error:', error);
+                    loginContainer.classList.add('active');
+                    appWrapper.classList.remove('active');
+                    loginLoader.style.display = 'none';
                 });
             } catch (error) {
-                console.error('Error in auth state listener:', error);
+                console.error('Error setting up auth state listener:', error);
                 loginContainer.classList.add('active');
                 appWrapper.classList.remove('active');
                 loginLoader.style.display = 'none';
             }
 
-            loginForm.addEventListener('submit', e => {
+            loginForm.addEventListener('submit', async e => {
                 e.preventDefault();
                 const username = document.getElementById('login-username').value.trim();
                 const password = document.getElementById('login-password').value;
@@ -366,18 +433,11 @@
                 loginError.textContent = '';
 
                 try {
-                    auth.signInWithEmailAndPassword(email, password)
-                        .then(() => {
-                            loginLoader.style.display = 'none';
-                        })
-                        .catch(error => {
-                            console.error('Login error:', error);
-                            loginError.textContent = "Usuário ou senha inválidos.";
-                            loginLoader.style.display = 'none';
-                        });
+                    await auth.signInWithEmailAndPassword(email, password);
+                    loginLoader.style.display = 'none';
                 } catch (error) {
-                    console.error('Error during login attempt:', error);
-                    loginError.textContent = "Erro ao tentar login. Tente novamente.";
+                    console.error('Login error:', error);
+                    loginError.textContent = 'Usuário ou senha inválidos.';
                     loginLoader.style.display = 'none';
                 }
             });
@@ -450,12 +510,12 @@
                     currentUserData = snapshot.val();
 
                     if (!currentUserData) {
-                        throw new Error("Dados de configuração não encontrados para este usuário.");
+                        throw new Error('Dados de configuração não encontrados para este usuário.');
                     }
 
                     const { xtreamUrl, xtreamUser, xtreamPass, m3uUrl } = currentUserData;
                     if (!xtreamUrl || !xtreamUser || !xtreamPass || !m3uUrl) {
-                        throw new Error("Configuração incompleta no banco de dados.");
+                        throw new Error('Configuração incompleta no banco de dados.');
                     }
 
                     const proxiedM3uUrl = proxifyUrl(m3uUrl);
@@ -466,17 +526,17 @@
                             .then(res => res.text())
                             .then(text => parseM3U(text).live)
                             .catch(error => {
-                                console.warn("Falha ao carregar M3U:", error.message);
+                                console.warn('Falha ao carregar M3U:', error.message);
                                 return [];
                             }),
                         fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, 'get_vod_streams')
                             .catch(error => {
-                                console.warn("Falha ao carregar VOD streams:", error.message);
+                                console.warn('Falha ao carregar VOD streams:', error.message);
                                 return [];
                             }),
                         fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, 'get_series')
                             .catch(error => {
-                                console.warn("Falha ao carregar séries:", error.message);
+                                console.warn('Falha ao carregar séries:', error.message);
                                 return [];
                             })
                     ]);
@@ -490,21 +550,20 @@
                     renderAllPages();
                     showPage('home');
                 } catch (error) {
-                    console.error("Erro ao carregar conteúdo:", error);
+                    console.error('Erro ao carregar conteúdo:', error);
                     loginError.textContent = `Erro: ${error.message}. Tente novamente ou verifique as configurações.`;
                     loginLoader.style.display = 'none';
                 }
             }
 
             const logoutButtons = document.querySelectorAll('#logout-btn, #mobile-logout-btn');
-            logoutButtons.forEach(btn => btn.addEventListener('click', () => {
+            logoutButtons.forEach(btn => btn.addEventListener('click', async () => {
                 try {
-                    auth.signOut().then(() => {
-                        console.log('User signed out');
-                        loginContainer.classList.add('active');
-                        appWrapper.classList.remove('active');
-                        loginLoader.style.display = 'none';
-                    });
+                    await auth.signOut();
+                    console.log('User signed out');
+                    loginContainer.classList.add('active');
+                    appWrapper.classList.remove('active');
+                    loginLoader.style.display = 'none';
                 } catch (error) {
                     console.error('Error during logout:', error);
                 }
@@ -563,11 +622,11 @@
                         </div>`;
             }
 
-            mainContent.addEventListener('click', (event) => {
+            mainContent.addEventListener('click', async event => {
                 const card = event.target.closest('.media-card, .episode-item');
                 if (!card) return;
                 if (card.dataset.seriesId) {
-                    renderSeriesDetailsPage(card.dataset.seriesId);
+                    await renderSeriesDetailsPage(card.dataset.seriesId);
                 } else if (card.dataset.streamUrl) {
                     const url = card.dataset.streamUrl;
                     openPlayer(proxifyUrl(url));
@@ -578,12 +637,12 @@
                 const { xtreamUrl, xtreamUser, xtreamPass } = currentUserData;
                 const seriesInfo = await fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, `get_series_info&series_id=${seriesId}`)
                     .catch(error => {
-                        console.warn("Falha ao carregar detalhes da série:", error.message);
+                        console.warn('Falha ao carregar detalhes da série:', error.message);
                         return null;
                     });
 
                 if (!seriesInfo || !seriesInfo.info) {
-                    alert("Não foi possível carregar os detalhes da série.");
+                    alert('Não foi possível carregar os detalhes da série.');
                     return;
                 }
 
@@ -598,7 +657,7 @@
 
                 if (seriesInfo.episodes) {
                     Object.keys(seriesInfo.episodes).forEach(seasonNum => seasonSelect.add(new Option(`Temporada ${seasonNum}`, seasonNum)));
-                    const renderEpisodes = (seasonNum) => {
+                    const renderEpisodes = seasonNum => {
                         episodeList.innerHTML = '';
                         seriesInfo.episodes[seasonNum].forEach(ep => {
                             const epUrl = `${xtreamUrl}/series/${xtreamUser}/${xtreamPass}/${ep.id}.${ep.container_extension || 'mp4'}`;
@@ -617,7 +676,7 @@
             function openPlayer(streamUrl) {
                 if (!streamUrl || streamUrl === 'null') {
                     console.warn('Invalid stream URL:', streamUrl);
-                    alert("URL de streaming inválida.");
+                    alert('URL de streaming inválida.');
                     return;
                 }
                 showPage('player');
@@ -632,25 +691,25 @@
                         hls.loadSource(streamUrl);
                         hls.attachMedia(videoPlayer);
                         hls.on(Hls.Events.ERROR, (event, data) => {
-                            console.error("HLS Error:", data);
-                            alert("Erro ao carregar o stream. Verifique a conexão ou a URL.");
+                            console.error('HLS Error:', data);
+                            alert('Erro ao carregar o stream. Verifique a conexão ou a URL.');
                             showPage(lastPageId);
                         });
                     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                         videoPlayer.src = streamUrl;
                         videoPlayer.addEventListener('error', () => {
-                            console.error("Video Player Error:", videoPlayer.error);
-                            alert("Erro ao reproduzir o vídeo.");
+                            console.error('Video Player Error:', videoPlayer.error);
+                            alert('Erro ao reproduzir o vídeo.');
                             showPage(lastPageId);
                         });
                     } else {
                         console.warn('HLS streaming not supported by browser');
-                        alert("Seu navegador não suporta streaming HLS.");
+                        alert('Seu navegador não suporta streaming HLS.');
                         showPage(lastPageId);
                     }
                 } catch (error) {
-                    console.error("Player Error:", error);
-                    alert("Erro ao iniciar o player.");
+                    console.error('Player Error:', error);
+                    alert('Erro ao iniciar o player.');
                     showPage(lastPageId);
                 }
             }
@@ -731,16 +790,13 @@
 
             // Force sign-out of any stale sessions on load
             try {
-                auth.signOut().then(() => {
-                    console.log('Cleared any stale sessions');
-                    loginContainer.classList.add('active');
-                    appWrapper.classList.remove('active');
-                    loginLoader.style.display = 'none';
-                }).catch(error => {
-                    console.error('Error clearing stale sessions:', error);
-                });
+                await auth.signOut();
+                console.log('Cleared any stale sessions');
+                loginContainer.classList.add('active');
+                appWrapper.classList.remove('active');
+                loginLoader.style.display = 'none';
             } catch (error) {
-                console.error('Error during initial sign-out:', error);
+                console.error('Error clearing stale sessions:', error);
             }
 
             initializeDeviceMode();
