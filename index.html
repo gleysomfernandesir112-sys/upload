@@ -461,7 +461,7 @@
                 let seriesId = '';
                 
                 if (activeUser.type === 'xtream') {
-                    const extension = item.container_extension || 'mp4'; // Fallback para mp4
+                    const extension = item.container_extension || 'mp4'; 
                     streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.m3u8` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
@@ -665,7 +665,7 @@
                 const navLinks = [...desktopLinks, ...mobileLinks];
                 navLinks.forEach(link => {
                     const page = link.dataset.page;
-                    let shouldShow = true; // Mostra todos por padrão agora
+                    let shouldShow = true; 
                     link.style.display = shouldShow ? '' : 'none';
                 });
              }
@@ -679,30 +679,60 @@
                 });
             });
 
+            // ===============================================================
+            // INÍCIO DA FUNÇÃO openPlayer ATUALIZADA
+            // ===============================================================
             function openPlayer(streamUrl) {
-                if (!streamUrl) return;
+                if (!streamUrl) {
+                    console.error("Tentativa de abrir player sem URL.");
+                    return;
+                }
 
+                // Limpa qualquer instância anterior do HLS.js
                 if (hls) {
                     hls.destroy();
                     hls = null;
                 }
 
-                const isHls = streamUrl.includes('.m3u8');
+                // Limpa o source anterior para evitar que o player tente tocar o último vídeo
+                videoPlayer.removeAttribute('src');
+                videoPlayer.load();
 
-                if (isHls && Hls.isSupported()) {
-                    console.log('Playing HLS stream:', streamUrl);
+                console.log(`Analisando URL para tocar: ${streamUrl}`);
+
+                // LÓGICA DINÂMICA
+                // 1. Verifica se é um stream HLS (.m3u8)
+                if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+                    console.log("Detectado: Stream HLS (.m3u8). Usando hls.js.");
                     hls = new Hls();
                     hls.loadSource(streamUrl);
                     hls.attachMedia(videoPlayer);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        videoPlayer.play().catch(e => console.error("Erro ao iniciar a reprodução HLS:", e));
+                    });
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        console.error('Erro no HLS.js:', data);
+                    });
+                
+                // 2. Verifica se é o formato incompatível RTMP
+                } else if (streamUrl.startsWith('rtmp://')) {
+                    console.error("Detectado: Stream RTMP. Este formato não é suportado por navegadores modernos.");
+                    alert("Não é possível tocar este canal. O formato (RTMP) não é compatível com navegadores web.");
+                    return; // Impede a abertura da página do player
+
+                // 3. Para todos os outros casos, tenta usar o player nativo do HTML5
                 } else {
-                    console.log('Playing direct stream:', streamUrl);
+                    console.log("Detectado: Outro formato de stream. Tentando com o player de vídeo nativo.");
                     videoPlayer.src = streamUrl;
+                    videoPlayer.load();
+                    videoPlayer.play().catch(e => console.error("Erro ao tentar tocar o vídeo com o player nativo:", e));
                 }
                 
-                videoPlayer.load();
                 showPage('player');
-                videoPlayer.play().catch(e => console.error("Erro ao tentar tocar o vídeo:", e));
             }
+            // ===============================================================
+            // FIM DA FUNÇÃO openPlayer ATUALIZADA
+            // ===============================================================
             
             mainContent.addEventListener('click', (event) => {
                 const card = event.target.closest('.media-card, .episode-item');
@@ -725,7 +755,7 @@
                 
                 videoPlayer.pause();
                 videoPlayer.removeAttribute('src');
-                videoSource.setAttribute('src', '');
+                if (videoSource) videoSource.setAttribute('src', '');
 
                 if (hls) {
                     hls.destroy();
