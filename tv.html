@@ -249,17 +249,20 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
-            authDomain: "fasthub-9a206.firebaseapp.com",
-            databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
-            projectId: "fasthub-9a206",
-            storageBucket: "fasthub-9a206.appspot.com",
-            messagingSenderId: "685686875831",
-            appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
-        };
+        // Prevent multiple Firebase initializations
+        if (!firebase.apps.length) {
+            const firebaseConfig = {
+                apiKey: "AIzaSyCY9sq12w7H9X3hm9FLa_KkazKONpm1nJE",
+                authDomain: "fasthub-9a206.firebaseapp.com",
+                databaseURL: "https://fasthub-9a206-default-rtdb.firebaseio.com",
+                projectId: "fasthub-9a206",
+                storageBucket: "fasthub-9a206.appspot.com",
+                messagingSenderId: "685686875831",
+                appId: "1:685686875831:web:035d9deb8596e4a3b88f32"
+            };
+            firebase.initializeApp(firebaseConfig);
+        }
 
-        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
@@ -287,11 +290,60 @@
             let lastPageId = 'home';
             let hls = null;
             let currentUserData = null;
+            let lastAuthState = null;
+            let authStateTimeout = null;
 
             // Initialize UI state
             loginContainer.classList.add('active');
             appWrapper.classList.remove('active');
             loginLoader.style.display = 'none';
+
+            // Debounce auth state changes
+            function handleAuthState(user) {
+                clearTimeout(authStateTimeout);
+                authStateTimeout = setTimeout(() => {
+                    console.log('Processed auth state:', user ? `User ${user.uid} logged in` : 'No user logged in');
+                    if (user && user.uid !== lastAuthState) {
+                        lastAuthState = user.uid;
+                        loginContainer.classList.remove('active');
+                        appWrapper.classList.add('active');
+                        loginLoader.style.display = 'none';
+                        if (!currentUserData) loadContentForUser(user);
+                    } else if (!user && lastAuthState !== null) {
+                        lastAuthState = null;
+                        loginContainer.classList.add('active');
+                        appWrapper.classList.remove('active');
+                        currentUserData = null;
+                        appData = { vodStreams: [], series: [], liveStreams: [] };
+                        loginLoader.style.display = 'none';
+                    }
+                }, 500); // Debounce for 500ms
+            }
+
+            auth.onAuthStateChanged(user => {
+                console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
+                handleAuthState(user);
+            });
+
+            loginForm.addEventListener('submit', e => {
+                e.preventDefault();
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value;
+                const email = username + '@fast-iptv.user';
+
+                loginLoader.style.display = 'block';
+                loginError.textContent = '';
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        loginLoader.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Login error:', error);
+                        loginError.textContent = "Usuário ou senha inválidos.";
+                        loginLoader.style.display = 'none';
+                    });
+            });
 
             // --- Device Selection Logic ---
             function saveDevicePreference(device) {
@@ -325,42 +377,6 @@
 
             window.addEventListener('keydown', e => {
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) autoEnableTvMode();
-            });
-
-            auth.onAuthStateChanged(user => {
-                console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
-                if (user) {
-                    loginContainer.classList.remove('active');
-                    appWrapper.classList.add('active');
-                    loginLoader.style.display = 'none';
-                    if (!currentUserData) loadContentForUser(user);
-                } else {
-                    loginContainer.classList.add('active');
-                    appWrapper.classList.remove('active');
-                    currentUserData = null;
-                    appData = { vodStreams: [], series: [], liveStreams: [] };
-                    loginLoader.style.display = 'none';
-                }
-            });
-
-            loginForm.addEventListener('submit', e => {
-                e.preventDefault();
-                const username = document.getElementById('login-username').value.trim();
-                const password = document.getElementById('login-password').value;
-                const email = username + '@fast-iptv.user';
-
-                loginLoader.style.display = 'block';
-                loginError.textContent = '';
-
-                auth.signInWithEmailAndPassword(email, password)
-                    .then(() => {
-                        loginLoader.style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('Login error:', error);
-                        loginError.textContent = "Usuário ou senha inválidos.";
-                        loginLoader.style.display = 'none';
-                    });
             });
 
             // --- Fetch with Timeout ---
@@ -560,6 +576,7 @@
 
             function openPlayer(streamUrl) {
                 if (!streamUrl || streamUrl === 'null') {
+                    console.warn('Invalid stream URL:', streamUrl);
                     alert("URL de streaming inválida.");
                     return;
                 }
@@ -587,6 +604,7 @@
                             showPage(lastPageId);
                         });
                     } else {
+                        console.warn('HLS streaming not supported by browser');
                         alert("Seu navegador não suporta streaming HLS.");
                         showPage(lastPageId);
                     }
@@ -669,6 +687,16 @@
                     e.preventDefault();
                     showPage(pageId);
                 });
+            });
+
+            // Force sign-out of any stale sessions on load
+            auth.signOut().then(() => {
+                console.log('Cleared any stale sessions');
+                loginContainer.classList.add('active');
+                appWrapper.classList.remove('active');
+                loginLoader.style.display = 'none';
+            }).catch(error => {
+                console.error('Error clearing stale sessions:', error);
             });
 
             initializeDeviceMode();
