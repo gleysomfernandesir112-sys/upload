@@ -263,6 +263,10 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // Set session persistence to LOCAL to maintain login state
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch(error => console.error("Error setting session persistence:", error));
+
         document.addEventListener('DOMContentLoaded', () => {
             const loginContainer = document.getElementById('login-container');
             const appWrapper = document.querySelector('.app-wrapper');
@@ -283,6 +287,7 @@
             let lastPageId = 'home';
             let hls = null;
             let currentUserData = null;
+            let isAuthenticated = false;
 
             // --- Device Selection Logic ---
             function saveDevicePreference(device) {
@@ -319,16 +324,19 @@
             });
 
             auth.onAuthStateChanged(user => {
-                if (user) {
+                if (user && !isAuthenticated) {
+                    isAuthenticated = true;
                     loginContainer.classList.remove('active');
                     appWrapper.classList.add('active');
+                    loginLoader.style.display = 'none';
                     if (!currentUserData) loadContentForUser(user);
-                } else {
+                } else if (!user && isAuthenticated) {
+                    isAuthenticated = false;
                     loginContainer.classList.add('active');
                     appWrapper.classList.remove('active');
                     currentUserData = null;
                     appData = { vodStreams: [], series: [], liveStreams: [] };
-                    loginLoader.style.display = 'none'; // Ensure loader is hidden on logout
+                    loginLoader.style.display = 'none';
                 }
             });
 
@@ -342,6 +350,9 @@
                 loginError.textContent = '';
 
                 auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        loginLoader.style.display = 'none';
+                    })
                     .catch(error => {
                         loginError.textContent = "Usuário ou senha inválidos.";
                         loginLoader.style.display = 'none';
@@ -399,7 +410,7 @@
                             .then(text => parseM3U(text).live)
                             .catch(error => {
                                 console.warn("Falha ao carregar M3U:", error.message);
-                                return []; // Return empty array on failure
+                                return [];
                             }),
                         fetchXtreamData(xtreamUrl, xtreamUser, xtreamPass, 'get_vod_streams')
                             .catch(error => {
@@ -419,23 +430,25 @@
                         series: seriesResult || []
                     };
 
-                    if (appData.liveStreams.length === 0 && appData.vodStreams.length === 0 && appData.series.length === 0) {
-                        throw new Error("Nenhum conteúdo carregado. Verifique as URLs e credenciais.");
-                    }
-
                     renderAllPages();
                     showPage('home');
                 } catch (error) {
                     console.error("Erro ao carregar conteúdo:", error);
                     loginError.textContent = `Erro: ${error.message}. Tente novamente ou verifique as configurações.`;
-                    auth.signOut();
                 } finally {
                     loginLoader.style.display = 'none';
                 }
             }
 
             const logoutButtons = document.querySelectorAll('#logout-btn, #mobile-logout-btn');
-            logoutButtons.forEach(btn => btn.addEventListener('click', () => auth.signOut()));
+            logoutButtons.forEach(btn => btn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    isAuthenticated = false;
+                    loginContainer.classList.add('active');
+                    appWrapper.classList.remove('active');
+                    loginLoader.style.display = 'none';
+                });
+            }));
 
             function renderAllPages() {
                 renderHomePage();
@@ -552,22 +565,31 @@
                     hls = null;
                 }
 
-                if (Hls.isSupported()) {
-                    hls = new Hls();
-                    hls.loadSource(streamUrl);
-                    hls.attachMedia(videoPlayer);
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        console.error("HLS Error:", data);
-                        alert("Erro ao carregar o stream. Verifique a conexão ou a URL.");
-                    });
-                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                    videoPlayer.src = streamUrl;
-                    videoPlayer.addEventListener('error', () => {
-                        console.error("Video Player Error:", videoPlayer.error);
-                        alert("Erro ao reproduzir o vídeo.");
-                    });
-                } else {
-                    alert("Seu navegador não suporta streaming HLS.");
+                try {
+                    if (Hls.isSupported()) {
+                        hls = new Hls();
+                        hls.loadSource(streamUrl);
+                        hls.attachMedia(videoPlayer);
+                        hls.on(Hls.Events.ERROR, (event, data) => {
+                            console.error("HLS Error:", data);
+                            alert("Erro ao carregar o stream. Verifique a conexão ou a URL.");
+                            showPage(lastPageId); // Return to previous page on error
+                        });
+                    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoPlayer.src = streamUrl;
+                        videoPlayer.addEventListener('error', () => {
+                            console.error("Video Player Error:", videoPlayer.error);
+                            alert("Erro ao reproduzir o vídeo.");
+                            showPage(lastPageId); // Return to previous page on error
+                        });
+                    } else {
+                        alert("Seu navegador não suporta streaming HLS.");
+                        showPage(lastPageId);
+                    }
+                } catch (error) {
+                    console.error("Player Error:", error);
+                    alert("Erro ao iniciar o player.");
+                    showPage(lastPageId);
                 }
             }
 
