@@ -160,7 +160,7 @@
     </style>
 </head>
 <body>
-    <div id="login-container">
+    <div id="login-container" class="active">
         <div class="login-box">
             <h1>Entrar</h1>
             <form id="firebase-login-form" class="login-form">
@@ -263,7 +263,7 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // Set session persistence to LOCAL to maintain login state
+        // Set session persistence to LOCAL
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
             .catch(error => console.error("Error setting session persistence:", error));
 
@@ -287,7 +287,11 @@
             let lastPageId = 'home';
             let hls = null;
             let currentUserData = null;
-            let isAuthenticated = false;
+
+            // Initialize UI state
+            loginContainer.classList.add('active');
+            appWrapper.classList.remove('active');
+            loginLoader.style.display = 'none';
 
             // --- Device Selection Logic ---
             function saveDevicePreference(device) {
@@ -324,14 +328,13 @@
             });
 
             auth.onAuthStateChanged(user => {
-                if (user && !isAuthenticated) {
-                    isAuthenticated = true;
+                console.log('Auth state changed:', user ? `User ${user.uid} logged in` : 'No user logged in');
+                if (user) {
                     loginContainer.classList.remove('active');
                     appWrapper.classList.add('active');
                     loginLoader.style.display = 'none';
                     if (!currentUserData) loadContentForUser(user);
-                } else if (!user && isAuthenticated) {
-                    isAuthenticated = false;
+                } else {
                     loginContainer.classList.add('active');
                     appWrapper.classList.remove('active');
                     currentUserData = null;
@@ -354,6 +357,7 @@
                         loginLoader.style.display = 'none';
                     })
                     .catch(error => {
+                        console.error('Login error:', error);
                         loginError.textContent = "Usuário ou senha inválidos.";
                         loginLoader.style.display = 'none';
                     });
@@ -443,7 +447,7 @@
             const logoutButtons = document.querySelectorAll('#logout-btn, #mobile-logout-btn');
             logoutButtons.forEach(btn => btn.addEventListener('click', () => {
                 auth.signOut().then(() => {
-                    isAuthenticated = false;
+                    console.log('User signed out');
                     loginContainer.classList.add('active');
                     appWrapper.classList.remove('active');
                     loginLoader.style.display = 'none';
@@ -573,14 +577,14 @@
                         hls.on(Hls.Events.ERROR, (event, data) => {
                             console.error("HLS Error:", data);
                             alert("Erro ao carregar o stream. Verifique a conexão ou a URL.");
-                            showPage(lastPageId); // Return to previous page on error
+                            showPage(lastPageId);
                         });
                     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                         videoPlayer.src = streamUrl;
                         videoPlayer.addEventListener('error', () => {
                             console.error("Video Player Error:", videoPlayer.error);
                             alert("Erro ao reproduzir o vídeo.");
-                            showPage(lastPageId); // Return to previous page on error
+                            showPage(lastPageId);
                         });
                     } else {
                         alert("Seu navegador não suporta streaming HLS.");
