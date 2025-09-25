@@ -461,7 +461,8 @@
                 let seriesId = '';
                 
                 if (activeUser.type === 'xtream') {
-                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${item.container_extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}` : '');
+                    const extension = item.container_extension || 'mp4'; // Fallback para mp4
+                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.m3u8` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
                     if (pageId === 'series') {
@@ -686,19 +687,21 @@
                     hls = null;
                 }
 
-                const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('');
+                const isHls = streamUrl.includes('.m3u8');
 
                 if (isHls && Hls.isSupported()) {
+                    console.log('Playing HLS stream:', streamUrl);
                     hls = new Hls();
                     hls.loadSource(streamUrl);
                     hls.attachMedia(videoPlayer);
                 } else {
+                    console.log('Playing direct stream:', streamUrl);
                     videoPlayer.src = streamUrl;
                 }
                 
                 videoPlayer.load();
                 showPage('player');
-                videoPlayer.play();
+                videoPlayer.play().catch(e => console.error("Erro ao tentar tocar o vídeo:", e));
             }
             
             mainContent.addEventListener('click', (event) => {
@@ -786,7 +789,8 @@
                         }
 
                         const seriesMatch = currentItem.raw_title.match(/^(.*?)(?:[ ._-]S(\d+)[ ._-]?E(\d+)|[ ._-](\d+)ª Temporada[ ._-]Episódio (\d+))/i);
-                        const isLive = url.includes('') || url.includes('/live/') || !(/\.(mp4|mkv|avi)$/i.test(url));
+                        
+                        const isLive = url.includes('/live/') || !(/\.(mp4|mkv|avi|mov)$/i.test(url));
                         
                         if(seriesMatch) {
                            const seriesName = seriesMatch[1].replace(/\[.*?\]/g, '').trim();
@@ -832,6 +836,3 @@
     </script>
 </body>
 </html>
-
-
-
