@@ -245,7 +245,7 @@
             });
 
         onAuthStateChanged(auth, (user) => {
-            if (user && user.email.toLowerCase() === 'richterandre394@gmail.com') {
+            if (user && user.uid === 'LIwOsdpzeiXZBfOrmLv4RmOIFcB3') {
                 showDashboard(user);
             } else {
                 showLogin("Acesso negado. Por favor, use a conta de administrador.");
