@@ -210,7 +210,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -237,8 +237,15 @@
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
+        // Handle redirect result
+        getRedirectResult(auth)
+            .catch((error) => {
+                console.error("Google redirect login error:", error);
+                loginError.textContent = "Falha no login com Google.";
+            });
+
         onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'richterandre394@gmail.com') {
+            if (user && user.email.toLowerCase() === 'richterandre394@gmail.com') {
                 showDashboard(user);
             } else {
                 showLogin("Acesso negado. Por favor, use a conta de administrador.");
@@ -247,11 +254,7 @@
         });
 
         loginBtn.addEventListener('click', () => {
-            signInWithPopup(auth, provider)
-                .catch(error => {
-                    console.error("Google login error:", error);
-                    loginError.textContent = "Falha no login com Google.";
-                });
+            signInWithRedirect(auth, provider);
         });
 
         logoutBtn.addEventListener('click', () => signOut(auth));
