@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+      rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- Login Page --- */
+        #admin-login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+        }
+        .login-box {
+            background: var(--card-background);
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-box h1 { 
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0 0 1rem;
+        }
+        .login-box p {
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+        }
+        .google-login-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--card-background);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .google-login-btn:hover {
+            background-color: #f9fafb;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+        .google-login-btn img {
+            width: 20px;
+            height: 20px;
+        }
+        #admin-login-error { color: var(--danger-color); text-align: center; margin-top: 1.5rem; min-height: 1.2em; }
+
+        /* --- Dashboard --- */
+        #admin-dashboard { display: none; }
+        .header {
+            background-color: var(--card-background);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo { font-size: 1.25rem; font-weight: 700; }
+        .header .admin-info { display: flex; align-items: center; gap: 1rem; }
+        .header .admin-info span { font-size: 0.9rem; color: var(--text-secondary); }
+        .logout-btn {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: none; border: none; color: var(--text-secondary); font-size: 0.9rem; cursor: pointer; padding: 0.5rem; border-radius: 6px;
+        }
+        .logout-btn:hover { background-color: #f1f5f9; color: var(--text-primary); }
+
+        main { padding: 2rem; }
+        .card {
+            background: var(--card-background);
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+        .card h2 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 1rem; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        th { background-color: #f8fafc; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); font-weight: 600; }
+        td { font-size: 0.95rem; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; }
+        .form-group input { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: #f9fafb; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px #c7d2fe; }
+        
+        .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+        .btn { padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; border: 1px solid transparent; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-secondary { background-color: var(--card-background); color: var(--text-primary); border-color: var(--border-color); }
+        .btn-secondary:hover { background-color: #f9fafb; }
+
+        .form-note { grid-column: 1 / -1; font-size: 0.9rem; color: var(--text-secondary); background-color: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        
+        .actions-cell { display: flex; gap: 0.5rem; }
+        .icon-btn { background: none; border: none; cursor: pointer; padding: 0.5rem; border-radius: 50%; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { background-color: #f1f5f9; color: var(--text-primary); }
+        .icon-btn.delete:hover { background-color: #fee2e2; color: var(--danger-color); }
+
+    </style>
+</head>
+<body>
+
+    <div id="admin-login-container">
+        <div class="login-box">
+            <h1>Admin Dashboard</h1>
+            <p>Acesso restrito para administradores.</p>
+            <button id="google-login-btn" class="google-login-btn">
+                <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google Logo">
+                Entrar com o Google
+            </button>
+            <p id="admin-login-error"></p>
+        </div>
+    </div>
+
+    <div id="admin-dashboard">
+        <header class="header">
+            <div class="logo">Admin Panel</div>
+            <div class="admin-info">
+                <span id="admin-email-display"></span>
+                <button id="logout-btn" class="logout-btn"><span class="material-icons-outlined">logout</span> Sair</button>
+            </div>
+        </header>
+        
+        <main>
+            <div class="card">
+                <h2>Adicionar / Editar Dados de Usuário</h2>
+                <form id="add-user-form">
+                    <p class="form-note"><b>Importante:</b> Crie o usuário primeiro no painel do Firebase Authentication (com um email `nome@appfast.cloud`). Depois, adicione o nome de usuário e os dados do Xtream aqui.</p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="new-user-username">Nome de Usuário</label>
+                            <input type="text" id="new-user-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-xtream-url">URL Xtream</label>
+                            <input type="text" id="new-user-xtream-url" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-xtream-user">Usuário Xtream</label>
+                            <input type="text" id="new-user-xtream-user" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-xtream-pass">Senha Xtream</label>
+                            <input type="text" id="new-user-xtream-pass" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Dados</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Gerenciar Usuários</h2>
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Nome de Usuário</th>
+                            <th>URL Xtream</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBC1nI3_95LZTMGRUh_aYUZ6ZCTylXZLl4",
+            authDomain: "app-fasthub.firebaseapp.com",
+            projectId: "app-fasthub",
+            storageBucket: "app-fasthub.firebasestorage.app",
+            messagingSenderId: "1022637274457",
+            appId: "1:1022637274457:web:42b5f0d4324de68dd2c848"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        const loginContainer = document.getElementById('admin-login-container');
+        const dashboard = document.getElementById('admin-dashboard');
+        const loginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('admin-login-error');
+        const addUserForm = document.getElementById('add-user-form');
+        const usersTableBody = document.getElementById('users-table-body');
+        const adminEmailDisplay = document.getElementById('admin-email-display');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === 'richterandre394@gmail.com') {
+                showDashboard(user);
+            } else {
+                showLogin("Acesso negado. Por favor, use a conta de administrador.");
+                if(user) signOut(auth);
+            }
+        });
+
+        loginBtn.addEventListener('click', () => {
+            signInWithPopup(auth, provider)
+                .catch(error => {
+                    console.error("Google login error:", error);
+                    loginError.textContent = "Falha no login com Google.";
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
+        function showLogin(error = "") {
+            loginContainer.style.display = 'flex';
+            dashboard.style.display = 'none';
+            if(error) loginError.textContent = error;
+        }
+
+        function showDashboard(user) {
+            loginContainer.style.display = 'none';
+            dashboard.style.display = 'block';
+            adminEmailDisplay.textContent = user.email;
+            loadUsers();
+        }
+
+        async function loadUsers() {
+            usersTableBody.innerHTML = '<tr><td colspan="3">Carregando...</td></tr>';
+            const usersCollection = collection(db, "users");
+            const usersSnapshot = await getDocs(usersCollection);
+            let tableContent = '';
+            usersSnapshot.forEach(doc => {
+                const userData = doc.data();
+                if (!userData.isAdmin) {
+                    tableContent += `
+                        <tr data-username="${doc.id}">
+                            <td>${doc.id}</td>
+                            <td>${userData.xtreamUrl}</td>
+                            <td class="actions-cell">
+                                <button class="icon-btn edit-btn"><span class="material-icons-outlined">edit</span></button> 
+                                <button class="icon-btn delete-btn delete"><span class="material-icons-outlined">delete</span></button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+            usersTableBody.innerHTML = tableContent || '<tr><td colspan="3">Nenhum usuário encontrado.</td></tr>';
+        }
+
+        addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('new-user-username').value;
+            const xtreamUrl = document.getElementById('new-user-xtream-url').value;
+            const xtreamUser = document.getElementById('new-user-xtream-user').value;
+            const xtreamPass = document.getElementById('new-user-xtream-pass').value;
+
+            if (!username) return;
+
+            try {
+                await setDoc(doc(db, "users", username), {
+                    xtreamUrl,
+                    xtreamUser,
+                    xtreamPass
+                }, { merge: true });
+                alert(`Dados para o usuário '${username}' salvos com sucesso!`);
+                addUserForm.reset();
+                loadUsers();
+            } catch (error) {
+                console.error("Error saving user data: ", error);
+                alert("Erro ao salvar os dados do usuário.");
+            }
+        });
+
+        cancelEditBtn.addEventListener('click', () => {
+            addUserForm.reset();
+        });
+
+        usersTableBody.addEventListener('click', async (e) => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+            const username = row.dataset.username;
+            if (!username) return;
+
+            if (e.target.closest('.delete-btn')) {
+                if (confirm(`Tem certeza que deseja excluir os dados do usuário '${username}'?`)) {
+                    try {
+                        await deleteDoc(doc(db, "users", username));
+                        alert('Dados do usuário excluídos!');
+                        loadUsers();
+                    } catch (error) {
+                        console.error('Error deleting user data: ', error);
+                        alert('Erro ao excluir dados do usuário.');
+                    }
+                }
+            }
+
+            if (e.target.closest('.edit-btn')) {
+                const userDoc = await getDoc(doc(db, "users", username));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    document.getElementById('new-user-username').value = username;
+                    document.getElementById('new-user-xtream-url').value = data.xtreamUrl || '';
+                    document.getElementById('new-user-xtream-user').value = data.xtreamUser || '';
+                    document.getElementById('new-user-xtream-pass').value = data.xtreamPass || '';
+                    document.querySelector('.card h2').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
