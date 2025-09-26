@@ -46,16 +46,17 @@
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
             width: 100%;
             max-width: 400px;
-            text-align: center;
         }
         .login-box h1 { 
             font-size: 1.75rem;
             font-weight: 700;
             margin: 0 0 1rem;
+            text-align: center;
         }
         .login-box p {
             color: var(--text-secondary);
             margin-bottom: 2.5rem;
+            text-align: center;
         }
         .google-login-btn {
             display: inline-flex;
@@ -82,34 +83,24 @@
             height: 20px;
         }
         #admin-login-error { color: var(--danger-color); text-align: center; margin-top: 1.5rem; min-height: 1.2em; }
+        .divider { display: flex; align-items: center; text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin: 1.5rem 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border-color); }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+        .login-form input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
+        .login-form button { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
 
         /* --- Dashboard --- */
         #admin-dashboard { display: none; }
-        .header {
-            background-color: var(--card-background);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .header { background-color: var(--card-background); padding: 1rem 2rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .header .logo { font-size: 1.25rem; font-weight: 700; }
         .header .admin-info { display: flex; align-items: center; gap: 1rem; }
         .header .admin-info span { font-size: 0.9rem; color: var(--text-secondary); }
-        .logout-btn {
-            display: flex; align-items: center; gap: 0.5rem;
-            background: none; border: none; color: var(--text-secondary); font-size: 0.9rem; cursor: pointer; padding: 0.5rem; border-radius: 6px;
-        }
+        .logout-btn { display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: var(--text-secondary); font-size: 0.9rem; cursor: pointer; padding: 0.5rem; border-radius: 6px; }
         .logout-btn:hover { background-color: #f1f5f9; color: var(--text-primary); }
 
         main { padding: 2rem; }
-        .card {
-            background: var(--card-background);
-            padding: 1.5rem 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            margin-bottom: 2rem;
-        }
+        .card { background: var(--card-background); padding: 1.5rem 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); margin-bottom: 2rem; }
         .card h2 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600; }
         
         table { width: 100%; border-collapse: collapse; }
@@ -149,6 +140,12 @@
                 <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google Logo">
                 Entrar com o Google
             </button>
+            <div class="divider">ou</div>
+            <form id="admin-pass-form" class="login-form">
+                <input type="email" id="admin-email" placeholder="Email de Admin" required>
+                <input type="password" id="admin-password" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
             <p id="admin-login-error"></p>
         </div>
     </div>
@@ -210,7 +207,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -225,11 +222,12 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
+        const googleProvider = new GoogleAuthProvider();
 
         const loginContainer = document.getElementById('admin-login-container');
         const dashboard = document.getElementById('admin-dashboard');
-        const loginBtn = document.getElementById('google-login-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const adminPassForm = document.getElementById('admin-pass-form');
         const logoutBtn = document.getElementById('logout-btn');
         const loginError = document.getElementById('admin-login-error');
         const addUserForm = document.getElementById('add-user-form');
@@ -237,7 +235,9 @@
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
-        // Handle redirect result
+        const ADMIN_UIDS = ['LIwOsdpzeiXZBfOrmLv4RmOIFcB3', 'ByrG6OzNTpbgDKiJnNqsEFdLFDF3'];
+
+        // Handle redirect result for Google
         getRedirectResult(auth)
             .catch((error) => {
                 console.error("Google redirect login error:", error);
@@ -245,16 +245,27 @@
             });
 
         onAuthStateChanged(auth, (user) => {
-            if (user && user.uid === 'LIwOsdpzeiXZBfOrmLv4RmOIFcB3') {
+            if (user && ADMIN_UIDS.includes(user.uid)) {
                 showDashboard(user);
             } else {
-                showLogin("Acesso negado. Por favor, use a conta de administrador.");
+                showLogin("Acesso negado. Por favor, use uma conta de administrador.");
                 if(user) signOut(auth);
             }
         });
 
-        loginBtn.addEventListener('click', () => {
-            signInWithRedirect(auth, provider);
+        googleLoginBtn.addEventListener('click', () => {
+            signInWithRedirect(auth, googleProvider);
+        });
+
+        adminPassForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch(error => {
+                    console.error("Email/pass login error:", error);
+                    loginError.textContent = "Email ou senha inválidos.";
+                });
         });
 
         logoutBtn.addEventListener('click', () => signOut(auth));
