@@ -595,8 +595,37 @@ document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 
     const showServersBtn = document.getElementById('show-servers-btn');
+            const serversModal = document.getElementById('servers-modal');
+            const closeBtn = document.querySelector('.close-btn');
+            const serversList = document.getElementById('servers-list');
 
-    showServersBtn.addEventListener('click', () => {
-        alert('Servidores disponíveis:\n\n' + servers.join('\n'));
+            showServersBtn.addEventListener('click', () => {
+                serversList.innerHTML = '';
+                servers.forEach(server => {
+                    const li = document.createElement('li');
+                    li.textContent = server;
+                    serversList.appendChild(li);
+                });
+                serversModal.style.display = 'block';
+            });
+
+            closeBtn.addEventListener('click', () => {
+                serversModal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target == serversModal) {
+                    serversModal.style.display = 'none';
+                }
+            });
+
+    closeBtn.addEventListener('click', () => {
+        serversModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == serversModal) {
+            serversModal.style.display = 'none';
+        }
     });
 });
