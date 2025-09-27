@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let searchTimeout;
     let hls = null;
     let flvPlayer = null;
+    let player = null;
 
     function showLoginError(message) {
         loginError.textContent = message;
@@ -202,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (activeUser.type === 'xtream') {
             const extension = item.container_extension || 'mp4'; // Fallback para mp4
-            streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}` : '');
+            streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.ts` : '');
             seriesId = pageId === 'series' ? streamId : '';
         } else { // M3U
             if (pageId === 'series') {
@@ -430,50 +431,72 @@ document.addEventListener('DOMContentLoaded', () => {
             flvPlayer.destroy();
             flvPlayer = null;
         }
+        if (player) {
+            player.reset();
+            player = null;
+        }
 
-        const isHls = streamUrl.includes('.m3u8');
-        const isDash = streamUrl.includes('.mpd');
-        const isFlv = streamUrl.includes('.flv');
+        const extensions = ['.m3u8', '.ts', '.flv', '']; // Empty string for no extension
 
-        if (isHls && Hls.isSupported()) {
-            console.log('Playing HLS stream:', streamUrl);
-            hls = new Hls();
-            hls.loadSource(streamUrl);
-            hls.attachMedia(videoPlayer);
-        } else if (isDash) {
-            console.log('Playing DASH stream:', streamUrl);
-            const player = dashjs.MediaPlayer().create();
-            player.initialize(videoPlayer, streamUrl, true);
-        } else if (isFlv && flvjs.isSupported()) {
-            console.log('Playing FLV stream:', streamUrl);
-            flvPlayer = flvjs.createPlayer({
-                type: 'flv',
-                url: streamUrl
-            });
-            flvPlayer.attachMediaElement(videoPlayer);
-            flvPlayer.load();
-        } else {
-            console.log('Playing direct stream or trying FLV:', streamUrl);
-            if (flvjs.isSupported()) {
-                try {
+        async function tryToPlay(url) {
+            return new Promise((resolve, reject) => {
+                const isHls = url.includes('.m3u8');
+                const isDash = url.includes('.mpd');
+                const isFlv = url.includes('.flv');
+
+                if (isHls && Hls.isSupported()) {
+                    console.log('Trying to play HLS stream:', url);
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(videoPlayer);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => resolve());
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            reject();
+                        }
+                    });
+                } else if (isDash) {
+                    console.log('Trying to play DASH stream:', url);
+                    player = dashjs.MediaPlayer().create();
+                    player.initialize(videoPlayer, url, true);
+                    player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => resolve());
+                    player.on(dashjs.MediaPlayer.events.ERROR, () => reject());
+                } else if (isFlv && flvjs.isSupported()) {
+                    console.log('Trying to play FLV stream:', url);
                     flvPlayer = flvjs.createPlayer({
                         type: 'flv',
-                        url: streamUrl
+                        url: url
                     });
                     flvPlayer.attachMediaElement(videoPlayer);
                     flvPlayer.load();
-                } catch (e) {
-                    console.error("Error trying to play with FLV.js, falling back to direct play", e);
-                    videoPlayer.src = streamUrl;
+                    flvPlayer.on(flvjs.Events.METADATA_ARRIVED, () => resolve());
+                    flvPlayer.on(flvjs.Events.ERROR, () => reject());
+                } else {
+                    console.log('Trying to play direct stream:', url);
+                    videoPlayer.src = url;
+                    videoPlayer.addEventListener('loadedmetadata', () => resolve());
+                    videoPlayer.addEventListener('error', () => reject());
                 }
-            } else {
-                videoPlayer.src = streamUrl;
-            }
+            });
         }
-        
-        videoPlayer.load();
-        showPage('player');
-        videoPlayer.play().catch(e => console.error("Erro ao tentar tocar o vídeo:", e));
+
+        async function tryExtensions() {
+            for (const ext of extensions) {
+                const url = streamUrl + ext;
+                try {
+                    await tryToPlay(url);
+                    console.log('Playing:', url);
+                    showPage('player');
+                    videoPlayer.play().catch(e => console.error("Erro ao tentar tocar o vídeo:", e));
+                    return;
+                } catch (error) {
+                    console.log('Failed to play:', url);
+                }
+            }
+            showLoginError('Não foi possível tocar o conteúdo.');
+        }
+
+        tryExtensions();
     }
     
     mainContent.addEventListener('click', (event) => {
@@ -491,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    backFromPlayerBtn.addEventListener('click', () => {
+        backFromPlayerBtn.addEventListener('click', () => {
         const isSeriesDetailsActive = document.getElementById('page-series-details').classList.contains('active');
         showPage(isSeriesDetailsActive ? 'series-details' : lastPageId);
         
@@ -502,6 +525,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hls) {
             hls.destroy();
             hls = null;
+        }
+        if (flvPlayer) {
+            flvPlayer.destroy();
+            flvPlayer = null;
+        }
+        if (player) {
+            player.reset();
+            player = null;
         }
         videoPlayer.load();
     });
