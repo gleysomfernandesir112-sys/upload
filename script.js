@@ -111,14 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.textContent = '';
 
         try {
-            const response = await fetch('servidores.txt');
-            if (!response.ok) {
-                showLoginError('Não foi possível carregar a lista de servidores.');
-                return;
-            }
-            const text = await response.text();
-            const servers = text.split('\n').filter(server => server.trim() !== '');
-
             let loggedIn = false;
             for (const server of servers) {
                 try {
@@ -604,18 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const showServersBtn = document.getElementById('show-servers-btn');
 
-    showServersBtn.addEventListener('click', async () => {
-        try {
-            const response = await fetch('servidores.txt');
-            if (!response.ok) {
-                alert('Não foi possível carregar a lista de servidores.');
-                return;
-            }
-            const text = await response.text();
-            const servers = text.split('\n').filter(server => server.trim() !== '');
-            alert('Servidores disponíveis:\n\n' + servers.join('\n'));
-        } catch (error) {
-            alert('Ocorreu um erro ao carregar a lista de servidores.');
-        }
+    showServersBtn.addEventListener('click', () => {
+        alert('Servidores disponíveis:\n\n' + servers.join('\n'));
     });
 });
