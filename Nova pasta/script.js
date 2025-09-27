@@ -427,17 +427,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const isHls = streamUrl.includes('.m3u8');
-        const isDash = streamUrl.includes('.mpd');
 
         if (isHls && Hls.isSupported()) {
             console.log('Playing HLS stream:', streamUrl);
             hls = new Hls();
             hls.loadSource(streamUrl);
             hls.attachMedia(videoPlayer);
-        } else if (isDash) {
-            console.log('Playing DASH stream:', streamUrl);
-            const player = dashjs.MediaPlayer().create();
-            player.initialize(videoPlayer, streamUrl, true);
         } else {
             console.log('Playing direct stream:', streamUrl);
             videoPlayer.src = streamUrl;
