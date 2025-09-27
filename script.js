@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lazyLoadObserver;
     let searchTimeout;
     let hls = null;
+    let flvPlayer = null;
 
     function showLoginError(message) {
         loginError.textContent = message;
@@ -425,9 +426,14 @@ document.addEventListener('DOMContentLoaded', () => {
             hls.destroy();
             hls = null;
         }
+        if (flvPlayer) {
+            flvPlayer.destroy();
+            flvPlayer = null;
+        }
 
         const isHls = streamUrl.includes('.m3u8');
         const isDash = streamUrl.includes('.mpd');
+        const isFlv = streamUrl.includes('.flv');
 
         if (isHls && Hls.isSupported()) {
             console.log('Playing HLS stream:', streamUrl);
@@ -438,9 +444,31 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Playing DASH stream:', streamUrl);
             const player = dashjs.MediaPlayer().create();
             player.initialize(videoPlayer, streamUrl, true);
+        } else if (isFlv && flvjs.isSupported()) {
+            console.log('Playing FLV stream:', streamUrl);
+            flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                url: streamUrl
+            });
+            flvPlayer.attachMediaElement(videoPlayer);
+            flvPlayer.load();
         } else {
-            console.log('Playing direct stream:', streamUrl);
-            videoPlayer.src = streamUrl;
+            console.log('Playing direct stream or trying FLV:', streamUrl);
+            if (flvjs.isSupported()) {
+                try {
+                    flvPlayer = flvjs.createPlayer({
+                        type: 'flv',
+                        url: streamUrl
+                    });
+                    flvPlayer.attachMediaElement(videoPlayer);
+                    flvPlayer.load();
+                } catch (e) {
+                    console.error("Error trying to play with FLV.js, falling back to direct play", e);
+                    videoPlayer.src = streamUrl;
+                }
+            } else {
+                videoPlayer.src = streamUrl;
+            }
         }
         
         videoPlayer.load();
