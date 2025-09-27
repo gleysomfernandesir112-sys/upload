@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (activeUser.type === 'xtream') {
                     const extension = item.container_extension || 'mp4'; // Fallback para mp4
-                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}.m3u8` : '');
+                    streamUrl = pageId === 'movies' ? `${activeUser.url}/movie/${activeUser.user}/${activeUser.pass}/${streamId}.${extension}` : (pageId === 'iptv' ? `${activeUser.url}/live/${activeUser.user}/${activeUser.pass}/${streamId}` : '');
                     seriesId = pageId === 'series' ? streamId : '';
                 } else { // M3U
                     if (pageId === 'series') {
