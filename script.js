@@ -83,50 +83,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loginWithXtream(url, user, pass) {
-        await fetchXtreamData(url, user, pass, 'get_user_info');
-        const [liveStreams, vodStreams, series] = await Promise.all([
-            fetchXtreamData(url, user, pass, 'get_live_streams'),
-            fetchXtreamData(url, user, pass, 'get_vod_streams'),
-            fetchXtreamData(url, user, pass, 'get_series'),
-        ]);
-        appData = { liveStreams, vodStreams, series };
-        activeUser = { type: 'xtream', url, user, pass };
-        if (document.getElementById('remember-me').checked) {
-            localStorage.setItem('streamflix_session', JSON.stringify(activeUser));
-        }
-        renderAllPages();
-        showApp('xtream');
-    }
-
-    async function login() {
-        const user = document.getElementById('xtream-user').value.trim();
-        const pass = document.getElementById('xtream-pass').value.trim();
-
-        if (!user || !pass) {
-            showLoginError('Por favor, preencha o usuário e a senha.');
-            return;
-        }
-
         loginLoader.style.display = 'block';
         loginError.textContent = '';
-
         try {
-            let loggedIn = false;
-            for (const server of servers) {
-                try {
-                    await loginWithXtream(server.trim(), user, pass);
-                    loggedIn = true;
-                    break; // Stop on the first successful login
-                } catch (error) {
-                    // Ignore errors and try the next server
-                }
+            await fetchXtreamData(url, user, pass, 'get_user_info');
+            const [liveStreams, vodStreams, series] = await Promise.all([
+                fetchXtreamData(url, user, pass, 'get_live_streams'),
+                fetchXtreamData(url, user, pass, 'get_vod_streams'),
+                fetchXtreamData(url, user, pass, 'get_series'),
+            ]);
+            appData = { liveStreams, vodStreams, series };
+            activeUser = { type: 'xtream', url, user, pass };
+            if (document.getElementById('remember-me').checked) {
+                localStorage.setItem('streamflix_session', JSON.stringify(activeUser));
             }
-
-            if (!loggedIn) {
-                showLoginError('Não foi possível entrar em nenhum dos servidores com as credenciais fornecidas.');
-            }
+            renderAllPages();
+            showApp('xtream');
         } catch (error) {
-            showLoginError('Ocorreu um erro ao tentar fazer o login.');
+            showLoginError(error.message || 'Falha ao carregar dados.');
         } finally {
             loginLoader.style.display = 'none';
         }
@@ -511,7 +485,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     xtreamForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        login();
+        loginWithXtream(
+            document.getElementById('xtream-url').value.trim(),
+            document.getElementById('xtream-user').value.trim(),
+            document.getElementById('xtream-pass').value.trim()
+        );
     });
     
     m3uForm.addEventListener('submit', (e) => {
@@ -593,39 +571,4 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileLogoutBtn.addEventListener('click', logout);
     
     checkSession();
-
-    const showServersBtn = document.getElementById('show-servers-btn');
-            const serversModal = document.getElementById('servers-modal');
-            const closeBtn = document.querySelector('.close-btn');
-            const serversList = document.getElementById('servers-list');
-
-            showServersBtn.addEventListener('click', () => {
-                serversList.innerHTML = '';
-                servers.forEach(server => {
-                    const li = document.createElement('li');
-                    li.textContent = server;
-                    serversList.appendChild(li);
-                });
-                serversModal.style.display = 'block';
-            });
-
-            closeBtn.addEventListener('click', () => {
-                serversModal.style.display = 'none';
-            });
-
-            window.addEventListener('click', (event) => {
-                if (event.target == serversModal) {
-                    serversModal.style.display = 'none';
-                }
-            });
-
-    closeBtn.addEventListener('click', () => {
-        serversModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target == serversModal) {
-            serversModal.style.display = 'none';
-        }
-    });
 });

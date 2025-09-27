@@ -19,25 +19,24 @@
             
             <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 5px; color: #fff; text-align: center;">Bem vindo</h2>
             <p style="font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-bottom: 25px; text-align: center;">Use seus dados de acesso</p>
-            <div class="login-tabs" style="display:none">
+            <div class="login-tabs">
                 <div class="login-tab active" data-form="xtream">API Xtream Codes</div>
                 <div class="login-tab" data-form="m3u">Lista M3U</div>
             </div>
             <form id="xtream-form" class="login-form active">
-                <input type="text" id="xtream-url" placeholder="URL do Servidor (ex: http://domain.com:port)" required style="display:none" value="http://alpha.webdoseumelhor.top/">
-                <input type="text" id="xtream-user" placeholder="Usuário" required>
-                <input type="password" id="xtream-pass" placeholder="Senha" required>
+                <input type="text" id="xtream-url" placeholder="URL do Servidor (ex: http://domain.com:port)" required>
+                <input type="text" id="xtream-user" placeholder="Utilizador" required>
+                <input type="password" id="xtream-pass" placeholder="Palavra-passe" required>
                 <div style="text-align: left; font-size: 14px; color: #fff; margin-top: 1rem;">
                     <input type="checkbox" id="remember-me" checked="">
                     <label for="remember-me">Lembrar meus dados de login.</label>
                 </div>
                 <button type="submit">Entrar</button>
             </form>
-            <form id="m3u-form" class="login-form" style="display:none">
+            <form id="m3u-form" class="login-form">
                 <input type="url" id="m3u-url-input" placeholder="URL da lista M3U" required>
                 <button type="submit">Carregar Lista</button>
             </form>
-            <button id="show-servers-btn" type="button" style="width: 100%; height: 55px; border-radius: 10px; background-image: linear-gradient(90deg, #1c1c1c, #3c3c3c); color: #fff; font-weight: 600; font-size: 16px; border: 0; margin-top: 10px; cursor: pointer;">Mostrar Servidores</button>
             <div id="login-error"></div>
              <div class="loader-container" id="login-loader">
                 <div class="loader"></div>
@@ -113,14 +112,6 @@
         </div>
     </div>
     
-    <script src="servers.js"></script>
     <script src="script.js"></script>
-    <div id="servers-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Servidores Disponíveis</h2>
-            <ul id="servers-list"></ul>
-        </div>
-    </div>
 </body>
 </html>
